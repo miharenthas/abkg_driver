@@ -1,0 +1,68 @@
+Usage: ./r3bsim_ascii [FILE] [OPTIONS]
+
+Runs a simulation of the R3B setup, specified in the options,
+  with the events saved in an ASCII FILE. If no file is specified, either
+  directly or via the --event-file option, STDIN is used.
+
+FILE is the file, saved in ASCII format, that contains the event
+  information. For how this file is supposed to be formatted,
+  please read "r3bsim_ascii_howto".
+
+Options:
+  -i --event-file <name>     Sets <name> as an input ASCII file.
+  
+  -o --output-file <name>    Sets <name> as the output ROOT file.
+                               Although not mandatoty, it's recommended
+                               that such a file bears the ".root" suffix.
+                               The default is "r3bsim.root".
+                               
+  -p --parameter-file <name> Sets <name> as the parameter file.
+                               Although not mandatoty, it's recommended
+                               that such a file bears the ".root" suffix.
+                               The default is "r3bsim.root".
+  
+  -n --nb-events <integer>   Sets the maximum number of events to be used
+                               in the simulation. If this exceeds the number
+                               of events present in FILE, the simulation ends
+                               prematurely.
+  
+  -v --verbose               Verbose output. Note that there will be some
+                               output to STDOUT event when this options is
+                               not specified (ROOT stuff).
+  
+  --detector-list <list>     Passes the list of detectors with their options
+                               to the simulator. Note that the default is no
+                               detector at all. See belo for the format.
+  
+  --magnet-current <float>   Sets the current of the magnet used
+                               in the simulation.
+                               
+  --no-magnet                If selected, runs a simulation without a magnet.
+  
+  --save-geometry            If selected, the geometry and track information
+                                is stored in the output file, making the
+                                event visualization possible.
+  
+  --target-material <string> Sets the material of the target. Note that this
+                                property can also be passed with the detector
+                                list (and so it should).
+  
+  -h --help                  Displays this help and exits with 0 status.
+
+Detector list format:
+The list of detectors is a string composed by the ALL CAPS name of the detector
+preceded and followed by :COLUMNS:
+If a detector has more than one geometry (aka, more than one version), this
+is appended to the detector :NAMEv99z:
+If a detector has options, these may follow its name and need not be
+surrounded by columns. So far, the only detector that takes options is
+:TARGET:[LeadTarget,LiH,Para,Para45].
+An example of a legal detector list is:
+
+:TARGET:LeadTarget:CRYSTALBALL:ALADIN:STaRTrackv14a:LAND:
+
+Note that everything that is not a valid name or option is silently discarded.
+
+Author: L. Zanetti, IKP - TU Darmstadt; lzanetti@ikp.tu-darmstadt.de
+  
+

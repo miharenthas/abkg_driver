@@ -1,0 +1,75 @@
+Usage: ./abkg_driver [OPTIONS]
+
+Where OPTIONS are:
+--file-name <string>: sets the output file name tail
+                      aMeV[energy]_<string>
+-f <string>: like --file-name
+
+--energy-range <begin> <end> <step> : sets the energy range
+                                      starts from <begin>
+                                      ends at <end>
+                                      stepping of <step>
+-E <begin> <end> <step> : like --energy-range
+
+-e <energy> : launch on one single energy.
+
+--en-gamma: sets EN_GAMMA
+--en-sigma: sets EN_SIGMA
+--ang-cut: sets ANG_CUT
+
+--spc-start <start> : sets the lowest energy of the spectrum
+--s <start> : same as --spc-start
+
+--spc-stop <stop> : sets the highest energy of the spectrum
+-S <stop> : same as --spc-stop
+
+--spc-bin <bin>: sets the bin of the energy spectrum
+-b <bin> : same as --spc-bin
+
+--angle-start <angle> : sets the start of the solid angle considered
+                        actually, the beginning of the aperture from
+                        the beam axis. It is assumed that the system
+                        is symmetric around the bea axis.
+-a <angle> : same as --angle-start
+
+--angle-stop <angle> : sets the stop of the solid angle considered.
+-A <angle> : same as --angle-stop
+
+--angle-step <n_of_divisions> : sets the stepping with which the angle is
+                                incremented. 361 is maximum.
+-t <n_of_divisions> : same as --angle-step
+
+--output-dir <name> : a directory where to save all the stuff produced.
+
+--detector-list <detector list> : passes a detector list to the simulator.
+                                  Please refer to sbkg documentation for
+                                  more info about the format.
+
+--no-compression : if selected, the output of gbkg is not passed through
+                   bzip2 before being saved. Acts only if no simulation
+                   is performed or if evey file generated is kept.
+                   NOTE: if you select this while running a simulation
+                         and you want to keep everything, expect longer
+                         run time than usual.
+
+--keep-everything : don't remove intermediate files.
+                    NOTE: this makes the whole process SLOWER!
+
+--do-simulation : a simulation is run, using sbkg. One per member in range.
+
+--mux-simulation : a simulation is run, usign sbkg. Simulation is split in
+                   so many parts as many CPUs are online and each is run
+                   independently; outputs are then merged using hadd (silenced).
+                   NOTE: not yet available with --keep-everything.
+                   NOTE: this is useful if you have a *small* number of
+                         background to simulate. If that is large enough
+                         a bug un Geant3 will rear its head and you're
+                         getting problems (or delays).
+
+--save-geometry: saves the geometry into the simulation output,
+                 for event visualization.
+
+--help : displays this message and exits.
+-h: same as --help. 
+
+Author: Lorenzo Zanetti, TU Darmstadt - IKP <lzanetti@ikp.tu-darmstadt.de>

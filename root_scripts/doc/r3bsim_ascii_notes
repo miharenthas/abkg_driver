@@ -1,0 +1,33 @@
+This file contains some indications about how to operate r3bsim_ascii (or however it's called:
+for example its first application is a background simulation and it's called "sbkg" ).
+
+To know what the options do and how a detector list should be formatted, please read "r3bsim_ascii_help" or launch the program with the --help option.
+
+ASCII FILE FORMAT:
+The events are specified in the same way you'd do with the R3B own ASCII generator --indeed, this
+program is based in the generator.
+
+An event begins with the statement:
+event_id	number_of_tracks	beam_energy	cross_section
+
+It **must** contain all the entries and it **must** be tab separated. Different format will cause a crash.
+
+After the event header, as many tracks as sepcified in number_of_tracks follow. Every track matches a particle created in the event, and its statement is as follows:
+particle_id	charge_number	mass_number	momentum	velocity	invariant_mass
+
+Where "momentum" and "velocity" are triplets of numbers, constituting a 3-vector. Again, all the data must be present and tab separated, otherwise we have a crash.
+
+NOTE: because this program can read from UNIX pipes, which of course cannot be rewinded, data is FIRST loaded and stored in memory in a FIFO structure, and then provided to the MC engine on demand (and removed from memory at the same time).
+Each track requires 35 bytes of memory, and each event add further 38 bytes on top of the track total:
+    38+35*number_of_tracks B total.
+For a 32 track event, the memory occupation is a bit more than 1 KiB, 1158 B.
+Each GiB of memory will thus hold 927238 32 tracks event.
+
+NOTE: to keep events as small as possible, the smallest numerical type that guarantees the required precision is used; in particular, note that floating point values are saved as single precision entries. This will suffices in the vast majority of the times, as ASCII events will usually just quote the first 6 digits of the mantissa.
+
+DETECTOR LIST:
+
+As of now, the detector supported are the ones in R3B:
+TARGET, ALADIN, GLAD, CRYSTALBALL, CALIFAv14a, CALIFAv13_811, TOF, MTOF, DTOF, DHC, TRACKER, STaRTrackv14a, STaRTrackv13a, GFI, LAND, SCINTNEULAND, VACVESSELCOOLv14a, VACVESSELCOOLv13a, MFI, PSP.
+
+The detector list shall be assembled as explained in the help file; whenever a mutiversion detector is specified without its version, the "latest" is automatically selected.

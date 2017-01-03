@@ -1,0 +1,878 @@
+      program abkg
+c
+c	Computes photon background from "atomic" processes in RHICs
+c
+c	treated are target KX-ray production, radiative electron capture (REC),
+c	primary bremsstrahlung (PB) and secondary electron bremsstrahlung (SEB).
+c
+c	not treated is projectile KX-ray emission.
+c 
+c
+c I got this from 
+c   Romain Holzmann (GSI) in 1998
+c and modified it to a some extend to fit my needs.
+c
+c                          Heiko Scheit, 2001
+c
+c
+
+      implicit none
+      real*4 degree,pi
+
+      integer*4 isource     ! determines which bkg sources are included
+
+      real*4 en_gamma     ! energy of isotropic gamma
+      real*4 sig_gamma    ! total cross section for isotropic gamma
+      real*4 angle_cut    ! angle used for cross section in spectrum 4 (spectrum at
+                          ! this angle in a 5 degree bin)
+      integer i,i1,i2
+
+      real*4 E_start,E_end,e_step  ! start and stop energy
+      integer*4 n_E           ! number of steps
+
+      real*4 Th_start,Th_end,th_step,theta  ! start and stop angle
+      integer*4 n_Th          ! number of steps
+
+      real*4 fluor_targ       ! target fluoreccence strength
+      real*4 acc             ! integration accuracy
+      real*4 sumI        ! xray_sum
+
+      real*4 rmass
+      real*4 s_KX
+      real*4 Eph           !
+
+      real*4 dummy
+
+      integer*4 indK,indL,ind,indKX,index_cut,istat,icycle
+
+      real*4 e_proj
+
+      real*4 wei,wei1,wei2
+      real*4 s_ang_int_tot,s_sum
+
+c function declariations
+      real*4 Z_eff,dSKXdO,dSRECdO,dSdEdO_SEB,dSisodO,dSdEdO_PB
+      integer*4 indexx
+
+      character*50 fname,out_name
+      character*45 string
+      character*45 angle_cut_string
+      integer*4 nlen/45/,nalen/45/
+      real*4 Ipotl(92)          ! mean ionization potentials of elements in eV
+      data Ipotl / 19.0,  42.0,  47.0,  63.0,  75.0,  79.0,  86.0,
+     &   99.0, 118.8, 135.0, 141.0, 149.0, 162.0, 159.0,
+     &   168.9, 179.2, 170.3, 180.0, 189.4, 195.0, 215.0,
+     &   228.0, 237.0, 257.0, 275.0, 284.0, 304.0, 314.0,
+     &   330.0, 323.0, 335.4, 323.0, 354.7, 343.4, 339.3,
+     &   347.0, 349.7, 353.3, 365.0, 382.0, 391.3, 393.0,
+     &   416.2, 428.6, 436.4, 456.0, 470.0, 466.0, 479.0,
+     &   511.8, 491.9, 491.3, 452.4, 459.0, 484.8, 485.5,
+     &   493.8, 512.7, 520.2, 540.0, 537.0, 545.9, 547.5,
+     &   567.0, 577.2, 578.0, 612.2, 583.3, 629.2, 637.0,
+     &   655.1, 662.9, 682.0, 695.0, 713.6, 726.6, 743.7,
+     &   760.0, 742.0, 768.4, 764.8, 761.0, 762.9, 765.1,
+     &   761.7, 733.1, 762.3, 760.1, 767.9, 776.4, 807.0,
+     &   808.0/
+
+#include "common_coca_inc.F"
+#include "common_xray_inc.F"
+
+      data QC_targ /0.00,0.05,0.10,0.15,0.20,0.30,0.40,0.50,0.60,
+     &   0.70,0.80,1.00,1.20,1.40,1.60,1.80,2.00,2.40,
+     &   3.00,4.00,5.00,6.00,7.00,8.00,10.0,15.0,20.0,
+     &   30.0,40.0,60.0,100.0/  !  Compton profile energies
+
+      integer*4 en_bin_max ,theta_bin_max,pawcsize
+      parameter (en_bin_max    = 1001)
+      parameter (theta_bin_max =  361)
+      parameter (pawcsize      = en_bin_max*theta_bin_max*10)
+
+      real*4 s_PB(en_bin_max,theta_bin_max)
+      real*4 s_SEB(en_bin_max)
+      real*4 e_REC_K(theta_bin_max)
+      real*4 s_REC_K(theta_bin_max)
+      real*4 e_REC_L(theta_bin_max)
+      real*4 s_REC_L(theta_bin_max)
+      real*4 e_iso(theta_bin_max)
+      real*4 s_iso(theta_bin_max)
+      real*4 s_tot(en_bin_max,theta_bin_max)
+
+      real*4 th_sin(theta_bin_max)
+
+      integer*4 h
+      common /pawc/ h(pawcsize)
+
+c functions
+      real*4 integ,J 
+      external J  ! used as argument of function
+
+      call hlimit(pawcsize)
+
+      degree=atan(1.0)/45
+      pi=180.0*degree
+
+ 10   write(6,'(/'' Enter data file name : '',$)')
+      read(5,'(A)',err=10) fname
+
+      open(unit=10, file=fname, status='old', form='formatted', err=10)
+      read(10,'(Z)') isource               ! the bits determine which sources are used (IN HEX)
+      read(10,*) en_gamma,sig_gamma,angle_cut 
+      read(10,*) A_proj,Z_proj,E_proj          ! energy in MeV/u
+      read(10,*) A_targ,Z_targ,rho_targ
+      read(10,*) nX_targ,fluor_targ ! target X-ray lines
+      read(10,*) (EX_targ(i),i=1,nX_targ) ! energies in keV
+      read(10,*) (IX_targ(i),i=1,nX_targ) ! relative yields in %
+      read(10,*) (JC_targ(i),i=1,31) ! Compton profile
+      read(10,*) E_start,E_end,n_E ! energy range in keV
+      read(10,*) Th_start,Th_end,n_Th ! theta range in deg
+      read(10,'(a)') out_name	! name of output file]
+      read(10,*) acc		! integration accuracy
+      close(10)
+
+      write(*,*)
+      write(*,'(x,a,z)')'***********************', isource
+      if(btest(isource,0)) write(*,*)'* (0) including PB'
+      if(btest(isource,1)) write(*,*)'* (1) including SEB'
+      if(btest(isource,2)) write(*,*)'* (2) including REC_K'
+      if(btest(isource,3)) write(*,*)'* (3) including REC_L'
+      if(btest(isource,4)) write(*,*)'* (4) including isotropic gamma (',sig_gamma,' mb) at',en_gamma,' keV'
+      if(btest(isource,5)) write(*,*)'* (5) including target xrays'
+      write(*,*)'***********************'
+
+      if(n_th.gt.theta_bin_max) then
+        write(*,*)'n_th.gt.theta_bin_max'
+        stop
+      endif
+
+      if(n_e.gt.en_bin_max) then
+        write(*,*)'n_e.gt.en_bin_max'
+        stop
+      endif
+
+      sumI = 0.0                ! normalize x-ray intensities
+      do i=1,nX_targ
+        sumI = sumI + IX_targ(i)
+      end do
+      do i=1,nX_targ
+        IX_targ(i) = IX_targ(i)/sumI
+      end do
+
+      g_proj = 1.0 + E_proj/931.5 ! gamma of projectile
+      b_proj = sqrt(1.0 - 1.0/g_proj**2) ! beta
+      Rmass = 0.511/(A_proj*931.5) ! mass ratio
+      Tmax_e = 1.022*(g_proj*b_proj)**2/(1.0 + 2.0*g_proj*Rmass + Rmass**2)
+
+      Iav_targ = 1.0e-6*Ipotl(nint(Z_targ)) ! average I in MeV
+      Z_proj_eff = Z_eff(E_proj,Z_proj)
+
+      Cnorm = 1.0
+      Cnorm = integ(-100.0,100.0,0.001,J) ! normalize Compton profile
+                                ! (should be = Z_targ)
+c	Tel = 1.0	    ! test here consistency of BN2 and BN3
+c	do i=1,10
+c	    Eph = float(i)*0.099
+c	    s1 = dSbdE(Eph,Tel,1.0)
+c	    s2 = 0.01745*integ(0.0,180.0,0.01,f_test)	! factor = conv. deg/rad
+c	    write(6,*) Eph,s1,s2
+c	end do
+
+      s_KX = fluor_targ*dSKXdO(dummy)
+
+      th_start = max(th_start,0.0)
+      th_end   = min(th_end,180.0)
+      e_start  = max(e_start,0.0)
+      angle_cut= min(angle_cut,180.)
+      angle_cut= max(0.,angle_cut)
+
+      if(th_start.ge.th_end) stop 'th_start.le.th_end'
+      if(e_start.ge.e_end) stop 'e_start.le.e_end'
+
+
+      th_step = abs(th_end - th_start)/float(n_th-1)
+      e_step = abs(e_end - e_start)/float(n_e-1)
+
+      do i=1,n_th               ! loop over angles
+        Theta = th_start + th_step*float(i-1)
+        th_sin(i) = abs(sin(theta*degree))  ! abs() to avoid small neg numbers at the endpoints...
+
+        s_REC_K(i) = dSRECdO(Eph,Theta,1) ! K shell REC   ! in b/sr
+        e_REC_K(i) = 1000.0*Eph
+
+        s_REC_L(i) = dSRECdO(Eph,Theta,2) ! L shell REC
+        e_REC_L(i) = 1000.0*Eph
+
+        s_iso(i) = sig_gamma * dSisodO(Eph,theta,en_gamma)/1000.0    ! isotropic cross section
+        e_iso(i) = eph
+
+      end do
+
+      do i1=1,n_e		! loop over photon energy
+        Eph = e_start + float(i1-1)*e_step ! energy in keV
+        if(btest(isource,1)) s_SEB(i1) = 0.001*dSdEdO_SEB(0.001*Eph,acc) ! in b/keV/sr  (isotropic)
+
+        if(btest(isource,0)) then
+          do i2=1,n_th		! loop over angle
+            Theta = th_start + float(i2-1)*th_step ! angle in degree
+            s_PB(i1,i2) = 0.001*dSdEdO_PB(0.001*Eph,Theta,acc) ! in b/keV/sr
+          end do
+        endif
+      end do	
+
+      do i1=1,n_th		! fill now a matrix with the total cross section
+        do i2=1,n_e             ! first zero everything
+          s_tot(i2,i1) = 0.0
+        end do
+      enddo
+      
+      if (BTEST(isource,0)) then          ! fill now matrix with the total cross section
+        do i1=1,n_th		
+          do i2=1,n_e
+            s_tot(i2,i1) = s_tot(i2,i1) + s_PB(i2,i1) ! PB in b/keV/sr
+          end do
+        enddo
+      endif
+
+      if (BTEST(isource,1)) then          ! fill now matrix with the total cross section
+        do i1=1,n_th		
+          do i2=1,n_e
+            s_tot(i2,i1) = s_tot(i2,i1) + s_SEB(i2) ! PB in b/keV/sr
+          end do
+        enddo
+      endif
+
+      if (BTEST(isource,2)) then
+        do i1=1,n_th		
+      	  indK = indexx(e_REC_K(i1),e_start,e_end,e_step) ! add REC_K
+	  if(indk.gt.0) s_tot(indK,i1) = s_tot(indK,i1) + s_REC_K(i1)/e_step
+        enddo   
+      endif
+      
+      if (BTEST(isource,3)) then
+        do i1=1,n_th		
+          indL = indexx(e_REC_L(i1),e_start,e_end,e_step) ! add REC_L
+          if(indl.gt.0) s_tot(indL,i1) = s_tot(indL,i1) + s_REC_L(i1)/e_step
+        enddo
+      endif
+      
+      if (BTEST(isource,4)) then
+        do i1=1,n_th		
+          ind = indexx(e_iso(i1),e_start,e_end,e_step)    ! iso
+          if(ind.gt.0) s_tot(ind,i1) = s_tot(ind,i1) + s_iso(i1)/e_step
+        enddo
+      endif
+      
+      if (BTEST(isource,5)) then
+        do i1=1,n_th		
+          do i=1,nX_targ        ! add target x-rays
+            indKX = indexx(EX_targ(i),e_start,e_end,e_step)
+            if(indkx.gt.0) s_tot(indKX,i1) = s_tot(indKX,i1) + IX_targ(i)*s_KX/e_step
+          end do
+        enddo
+      endif
+
+      
+C at this point s_tot(,) is the total cross section in b/keV/sr
+
+      s_sum = 0.0
+      do i1=1,n_e		! integrate total cross section
+        wei1 = 1.
+        if(i1.eq.1 .or. i1.eq.n_e) wei1 =.5
+        Eph = e_start + e_step * float(i1-1)
+        do i2=1,n_th
+          wei2= 1.0
+          if(i2.eq.1 .or. i2.eq.n_th) wei2= .5
+          Theta = th_start + th_step * float(i2-1)
+          s_sum = s_sum + wei1 * wei2 * 2.0 * pi * s_tot(i1,i2)*th_sin(i2)*e_step*th_step*degree
+        end do
+      end do
+
+      write(string,2000) s_sum
+ 2000 format(' Total cross section = ',1pe10.3,' barn')
+      call strtrim(string,nlen)
+      write(*,*)string
+      write(angle_cut_string,'(3x,f4.1)')angle_cut
+      call strtrim(angle_cut_string,nalen)
+
+      call hbook2(1,string(1:nlen)//'dSig/dE/dtheta (b/keV/rad)',n_th,th_start-th_step/2.,th_end+th_step/2.,
+     &   n_e,e_start-e_step/2.,e_end+e_step/2.,0.0)
+      call hbook2(2,string(1:nlen)//'dSig/dE/dOmega (b/keV/sr)',n_th,th_start-th_step/2.,th_end+th_step/2.,
+     &   n_e,e_start-e_step/2.,e_end+e_step/2.,0.0)
+      call hbook1(3,string(1:nlen)//'dSig/dE (b/keV)',n_e,e_start-e_step/2.,e_end+e_step/2.,0.0)
+
+      call hbook1(4,string(1:nlen)//'dSig/dE/dtheta (b/keV/5deg) @'//
+     &   angle_cut_string(1:nalen)//' deg',n_e,e_start-e_step/2.,e_end+e_step/2.,0.0)
+
+      index_cut = indexx(angle_cut,th_start,th_end,th_step)
+      write(*,'(a,f4.1)')'Spectrum 4 with angle_cut +- 2.5 degree: angle_cut =',angle_cut
+
+      do i1=1,n_e		! load now histogram
+        Eph = e_start + float(i1-1)*e_step
+        s_ang_int_tot=0.0
+        do i2=1,n_th	
+          wei=1
+          if(i2.eq.1 .or. i2.eq.n_th) wei=0.5
+
+          Theta = th_start + float(i2-1)*th_step
+          call hfill(1,Theta,eph,2.0*pi*th_sin(i2)*s_tot(i1,i2))  !  dsig/dtheta
+          call hfill(2,Theta,eph,s_tot(i1,i2))                    !  dsig/domega
+          s_ang_int_tot = s_ang_int_tot + 2.0*pi* wei * s_tot(i1,i2) * th_sin(i2) * th_step*degree
+        end do
+
+        dummy=0.0
+        call hfill(3,eph,dummy,s_ang_int_tot)
+        if(index_cut.gt.0)
+     &     call hfill(4,eph,dummy,
+     &     2 * pi * s_tot(i1,index_cut) * th_sin(index_cut) * (5*degree))
+
+      end do
+      
+      write(*,*)'writing file ',out_name
+
+      call hropen(11,'atomic',out_name,' N',1024,istat)
+      if(istat.ne.0) then
+        write(*,*)'hropen: istat.ne.0, istat',istat
+        stop
+      endif
+      call hrout(0,icycle,' ')
+      call hrend('atomic')
+      stop
+      end
+
+c  
+c
+c  returns the array index corresponding to the value VALUE, assuming that
+c  there exists an array of values ranging from V_START to V_STOP with
+c  step V_STEP
+c
+c
+      integer*4 function indexx(value,v_start,v_stop,v_step)
+      implicit none
+      real*4 value,v_start,v_stop,v_step
+
+c      write(*,*)'index: ',value,v_start,v_stop,v_step
+
+      if(value.ge.(v_start-v_step/2.) .and. value.le.(v_stop+v_step/2.)) then
+        indexx=nint((value-v_start)/v_step) + 1
+      else
+        indexx = -1
+      endif
+
+      return
+      end
+c
+c
+c
+      subroutine strtrim(str,newlen)
+      implicit none
+      character*(*) str
+      integer*4 newlen
+      integer*4 len
+
+      integer*4 idum,istart
+ 
+      read(str,'(Q)') len
+      newlen=len
+      istart=1
+
+      do idum=1,len
+        if (str(istart:istart) .eq. ' ') then
+          istart = istart + 1
+        endif
+      enddo
+      do idum=len,1,-1
+        if (str(len:len) .eq. ' ') then
+          len = len - 1
+        endif
+      enddo
+
+      str = str(istart:len)
+      newlen=len-istart+1
+
+      return
+      end
+
+c
+c
+c
+      real*4 function dEdXe(T)	! electronic stopping power of electrons
+                                ! T in MeV, dE/dX in MeV/cm
+      IMPLICIT REAL*4 (A-H,O-Z)
+#include "common_coca_inc.F"
+
+      g2 = (1.0 + T/0.511)**2
+      b2 = 1.0 - 1.0/g2
+      factor = log(1.022*b2*g2/Iav_targ) - b2
+      dEdXe = 0.3071*(Z_targ*rho_targ/A_targ)*factor/b2 ! in MeV/cm
+      return
+      end
+c
+c
+c
+      real*4 function dSdEe(T)	! elastic scattering cross section
+                                ! of target electrons off projectile
+                                ! T in MeV, dSdE in barn/MeV
+      IMPLICIT REAL*4 (A-H,O-Z)
+#include "common_coca_inc.F"
+
+      TT = T/Tmax_e
+      factor = 1.0 - b_proj**2*TT + 0.0229*Z_proj*b_proj*(sqrt(TT)-TT)
+      dSdEe = 0.255*(Z_proj/(b_proj*T))**2*factor ! in barn/MeV
+      return
+      end
+c
+c
+c
+      real*4 function dSbdE(Eph,Tel,Z) ! angle-integrated Bremsstrahlung  3BN
+                                ! from Rev. Mod. Phys. 31 (1959) 920
+                                ! Eph = Bremsstrahlung-photon energy in MeV
+                                ! Tel = electron kinetic energy in MeV
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 L,k,Lambda
+
+      if(eph.le.0.) then
+        dsbde = 0
+        return
+      endif
+
+      dSbdE = 0.0
+      if(Eph.ge.0.99*Tel) return
+      k = Eph/0.511
+      T0 = Tel/0.511
+      E0 = T0 + 1.0		! total initial electron energy
+      E = E0 - k		! total final electron energy
+      T = T0 - k
+      p0 = sqrt(T0*(T0+2.0))	! initial electron momentum
+      p = sqrt(T*(T+2.0))	! final electron momentum
+      beta0 = p0/E0
+      beta = p/E
+      L = 2.0*log((E0*E + p0*p - 1.0)/k)
+      eps0 = log((E0+p0)/(E0-p0))
+      eps = log((E+p)/(E-p))
+      E02 = E0*E0
+      E2 = E*E
+      p02 = p0*p0
+      p2 = p*p
+      p03 = p02*p0
+      p3 = p2*p
+      E0E = E0*E
+      E0E2 = E0E*E0E
+      p0p = p0*p
+      p0p2 = p0p*p0p
+      A = 1.3333 - 2.0*E0E*(p02+p2)/(p02*p2)
+      B = eps0*E/p03 + eps*E0/p3 - eps*eps0/p0p
+      C = 2.6667*E0E/p0p
+      D = k*k*(E0E2+p0p2)/(p03*p3)
+      E = 0.5*k/p0p
+      F = eps0*(E0E+p02)/p03 - eps*(E0E+p2)/p3 + 2.0*k*E0E/p0p2
+      factor = (A + B + L*(C + D + E*F))*p/p0
+      dSbdE = 0.000578*Z**2*factor/Eph ! in barn/MeV
+      dSbdE = dSbdE*elwert(beta0,beta,Z)*Lambda(T0,Z)
+      return
+      end
+c
+c
+c
+
+      real*4 function dSbdEdO(Eph,Theta,Tel,Z) ! differential Bremsstrahlung  2BN
+                                ! from Rev. Mod. Phys. 31 (1959) 920
+                                ! Eph = photon energy in MeV
+                                ! Theta = angle of photon in deg
+                                ! Tel = electron kinetic energy in MeV
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 L,k,k2,Lambda
+
+      dSbdEdO = 0.0
+      if(Eph.ge.0.99*Tel) return
+      if(eph.le.0.0) return
+
+      k = Eph/0.511
+      T0 = Tel/0.511
+      E0 = T0 + 1.0		! total initial electron energy
+      E = E0 - k		! total final electron energy
+      T = T0 - k
+      p0 = sqrt(T0*(T0+2.0))	! initial electron momentum
+      p = sqrt(T*(T+2.0))	! final electron momentum
+      beta0 = p0/E0
+      beta = p/E
+      E02 = E0*E0
+      E2 = E*E
+      k2 = k*k
+      p02 = p0*p0
+      E0E = E0*E
+      p0p = p0*p
+      sint = sind(Theta)
+      sint2 = sint*sint
+      cost = cosd(Theta)
+      Q2 = p02+k2-2.0*p0*k*cost
+      Q = sqrt(Q2)
+      epsQ = log((Q+p)/(Q-p))
+      eps = log((E+p)/(E-p))
+      d0 = E0 - p0*cost
+      d02 = d0*d0
+      d04 = d02*d02
+
+      L = log((E0E+p0p-1.0)/(E0E-p0p-1.0))
+      A = 8.0*sint2*(2.0*E02+1.0)/(p02*d04)
+      B = -2.0*(5.0*E02+2.0*E0E+3.0)/(p02*d02)
+      C = -2.0*(p02-k2)/(Q2*d02) + 4.0*E/(p02*d0)
+      D = 4.0*E0*sint2*(3.0*k-p02*E)/(p02*d04)
+      E = 4.0*E02*(E02+E2)/(p02*d02)
+      F = (2.0-2.0*(7.0*E02-3.0*E0E+E2))/(p02*d02)
+      G = 2.0*k*(E02+E0E-1.0)/(p02*d0)
+      H = -4.0*eps/(p*d0) + epsQ/(p*Q)*(4.0/d02 - 6.0*k/d0
+     &   - 2.0*k*(p02-k2)/(Q2*d0)) 
+      factor = (A + B + C + L*(D + E + F + G)/p0p + H)*p/p0
+      dSbdEdO = 2.30e-5*Z**2*factor/Eph ! in barn/MeV/sr
+      dSbdEdO = dSbdEdO*elwert(beta0,beta,Z)*Lambda(T0,Z)
+      return
+      end
+c
+c
+c
+      real*4 function elwert(beta0,beta,Z) ! approximate Coulomb correction
+      IMPLICIT REAL*4 (A-H,O-Z)
+      elwert = beta0*(1.0-exp(-0.0459*Z/beta0))/
+     &   (beta*(1.0-exp(-0.0459*Z/beta)))
+      return
+      end
+c
+c
+c
+      real*4 function Lambda(T0,Z) ! empirical correction to Born approximation
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 t(22),tab13(22),tab79(22)
+      data t /0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,
+     &   1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,
+     &   10.0,20.0,100.0,200.0/
+      data tab13 /1.03,1.11,1.17,1.25,1.22,1.28,1.30,1.32,1.33,1.34,
+     &   1.27,1.18,1.13,1.08,1.06,1.04,1.03,1.02,1.01,1.00,
+     &   1.00,1.00/
+      data tab79 /1.20,1.31,1.38,1.42,1.46,1.50,1.52,1.54,1.55,1.54,
+     &   1.39,1.17,1.12,1.10,1.08,1.06,1.04,1.03,1.01,0.96,
+     &   0.92,0.92/ 
+      Lambda = 1.0
+      if(T0.le.0.0) return
+      do i=2,22
+        if(t(i).ge.T0) goto 10
+      end do
+      i = 22
+ 10   dt = T0 - t(i-1)          ! interpolate energy
+      f13 = tab13(i-1) + dt*(tab13(i)-tab13(i-1))/(t(i)-t(i-1))
+      f79 = tab79(i-1) + dt*(tab79(i)-tab79(i-1))/(t(i)-t(i-1))
+      Lambda = f13 + (Z-13.0)*(f79-f13)/66.0 ! interpolate Z
+      if(Lambda.lt.0.0) Lambda = 0.0
+
+      return
+      end
+c
+c
+c
+      real*4 function J(Q)	! compute Compton profile from table
+                                ! by linear interpolaion
+                                ! Q given in 0.00374 MeV/c
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 Q
+c      real*4 EX_targ(10),IX_targ(10),QC_targ(31),JC_targ(31)
+#include "common_xray_inc.F"
+
+      QQ = abs(Q)
+      do i=2,31
+        if(QQ.eq.QC_targ(i)) then
+          J = JC_targ(i)/Cnorm
+          return
+        end if
+        if(QQ.lt.QC_targ(i)) then
+          J = JC_targ(i-1) + (QQ-QC_targ(i-1)) *
+     &       (JC_targ(i)-JC_targ(i-1))/(QC_targ(i)-QC_targ(i-1))
+          J = J/Cnorm
+          return
+        end if
+      end do
+      J = 0.0
+      return
+      end
+c
+c
+c
+      real*4 FUNCTION INTEG(X1,X2,ACC,FUNCTION) ! Gauss integration
+                                ! between limits x1,x2
+      IMPLICIT REAL*4 (A-H,O-Z)
+c  	REAL*4 INTEG
+      EXTERNAL FUNCTION
+      DIMENSION A(16),W(16)
+      DATA (A(I),I=1,16) /
+     &   -0.989400934991650,-0.944575023073233,-0.865631202387832,
+     &   -0.755404408355003,-0.617876244402644,-0.458016777657227,
+     &   -0.281603550779259,-0.095012509837637, 0.095012509837637,
+     &   0.281603550779259, 0.458016777657227, 0.617876244402644,
+     &   0.755404408355003, 0.865631202387832, 0.944575023073233,
+     &   0.989400934991650/
+      DATA (W(I),I=1,16) /
+     &   0.027152459411754, 0.062253523938648, 0.095158511682493,
+     &   0.124628971255534, 0.149595988816577, 0.169156519395003,
+     &   0.182603415044924, 0.189450610455069, 0.189450610455069,
+     &   0.182603415044924, 0.169156519395003, 0.149595988816577,
+     &   0.124628971255534, 0.095158511682493, 0.062253523938648,
+     &   0.027152459411754/
+C
+C
+      SIGN = 1.0
+      IF(X2.LT.X1) THEN
+        X3 = X1
+        X1 = X2
+        X2 = X3
+        SIGN = -1.0
+      END IF
+C
+      IF(ACC.LE.0.0) ACC=0.01
+      NSTEP = INT(1.0/ACC) + 1
+      DX = (X2-X1)/REAL(NSTEP)
+      INTEG = 0.0
+      X = X1 - DX
+      DO 1000 I=1,NSTEP
+        X = X + DX
+        DO 2000 J=1,16
+          INTEG = INTEG + 
+     &       0.5*DX*W(J)*FUNCTION((0.5*DX*(A(J)+1.0) + X))
+ 2000   CONTINUE
+ 1000 CONTINUE
+      INTEG = SIGN*INTEG
+      RETURN
+      END
+c
+c
+c
+      real*4 FUNCTION INTEG2(X1,X2,ACC,FUNCTION) ! Gauss integration
+c						! between limits x1,x2
+c	INTEG2 is identical to INTEG, but is required because FORTRAN
+c	routines are not re-entrant.
+c
+
+      IMPLICIT REAL*4 (A-H,O-Z)
+      EXTERNAL FUNCTION
+      DIMENSION A(16),W(16)
+      DATA (A(I),I=1,16) /
+     &   -0.989400934991650,-0.944575023073233,-0.865631202387832,
+     &   -0.755404408355003,-0.617876244402644,-0.458016777657227,
+     &   -0.281603550779259,-0.095012509837637, 0.095012509837637,
+     &   0.281603550779259, 0.458016777657227, 0.617876244402644,
+     &   0.755404408355003, 0.865631202387832, 0.944575023073233,
+     &   0.989400934991650/
+      DATA (W(I),I=1,16) /
+     &   0.027152459411754, 0.062253523938648, 0.095158511682493,
+     &   0.124628971255534, 0.149595988816577, 0.169156519395003,
+     &   0.182603415044924, 0.189450610455069, 0.189450610455069,
+     &   0.182603415044924, 0.169156519395003, 0.149595988816577,
+     &   0.124628971255534, 0.095158511682493, 0.062253523938648,
+     &   0.027152459411754/
+C
+C
+      SIGN = 1.0
+      IF(X2.LT.X1) THEN
+        X3 = X1
+        X1 = X2
+        X2 = X3
+        SIGN = -1.0
+      END IF
+C
+      IF(ACC.LE.0.0) ACC=0.01
+      NSTEP = INT(1.0/ACC) + 1
+      DX = (X2-X1)/REAL(NSTEP)
+      INTEG2 = 0.0
+      X = X1 - DX
+      DO 1000 I=1,NSTEP
+        X = X + DX
+        DO 2000 J=1,16
+          INTEG2 = INTEG2 + 
+     &       0.5*DX*W(J)*FUNCTION((0.5*DX*(A(J)+1.0) + X))
+ 2000   CONTINUE
+ 1000 CONTINUE
+      INTEG2 = SIGN*INTEG2
+      RETURN
+      END
+c
+c
+c
+      real*4 function dSdEdO_PB(Eph,Theta,acc) ! differential PB cross section
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 integ,f_PB         ! Eph in MeV, Theta in degrees
+      external f_PB
+      real*4 acc8
+#include "common_coca_inc.F"
+      common /PBSEB/ Eph_CM,Theta_CM
+
+      cost = cosd(Theta)
+      costCM = (b_proj-cost)/(1.0-b_proj*cost) ! goto CM, including a
+      Theta_CM = 57.296*acos(costCM) ! forward-backward reversion
+      factor = 1.0/(g_proj*(1.0-b_proj*cost)) ! dOcm/dOlab * dEcm/dElab
+      Eph_CM = Eph/factor
+
+      acc8 = acc
+      dSdEdO_PB = Z_targ*factor*integ(-100.0,100.0,acc8,f_PB) ! in b/MeV/sr
+
+      return
+      end
+c
+c
+c
+      real*4 function f_PB(pz)
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 pz,J
+#include "common_coca_inc.F"
+      common /PBSEB/ Eph_CM,Theta_CM
+
+      Telec = (sqrt((b_proj*g_proj + 0.00732*pz)**2 + 1.0)-1.0)*0.511
+      f_PB = J(pz)*dSbdEdO(Eph_CM,Theta_CM,Telec,Z_proj)
+      return
+      end
+c
+c
+c
+      real*4 function dSdEdO_SEB(Eph,acc) ! differential SEB cross section
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 integ,f_SEB	! Eph in MeV
+      real*4 e1,e2,acc8
+      external f_SEB
+      real*4 n2
+#include "common_coca_inc.F"
+      common /PBSEB/ Eph_SEB,dummy
+
+      if(Eph.ge.Tmax_e) then
+        dSdEdO_SEB = 0.0
+        return
+      end if
+
+      n2 = 0.6022*rho_targ/A_targ
+      factor = 0.0796*Z_targ*n2 ! 1/4pi
+      Eph_SEB = Eph
+      
+      acc8 = acc/2.0
+      e1 = Eph
+      e2 = Tmax_e
+      dSdEdO_SEB = factor*integ(e1,e2,acc8,f_SEB) ! in b/MeV/sr
+
+      return
+      end
+c
+c
+      real*4 function f_SEB(Tscat)
+      IMPLICIT REAL*4 (A-H,O-Z)
+      common /PBSEB/ Eph_SEB,dummy
+      real*4 Tscat
+      real*4 integ2,f_SEB2
+      real*4 e1,e2
+      external f_SEB2
+
+      e1 = Eph_SEB
+      e2 = Tscat
+      f_SEB = dSdEe(Tscat)*integ2(e1,e2,0.1,f_SEB2)
+      return
+      end
+c
+c
+      real*4 function f_SEB2(Tslow8)
+      IMPLICIT REAL*4 (A-H,O-Z)
+      real*4 Tslow8
+#include "common_coca_inc.F"
+      common /PBSEB/ Eph_SEB,dummy
+
+      Tslow4 = Tslow8
+      Zprim = sqrt(Z_targ*(Z_targ+1.0)) ! include e-e bremstrahlung
+      f_SEB2 = dSbdE(Eph_SEB,Tslow4,Zprim)/dEdXe(Tslow4)
+      return
+      end
+
+c
+c
+c
+c
+      real*4 function Z_eff(EA,Z_ion) ! Ziegler's effective charge
+                                ! EA in MeV/u
+      implicit real*4 (a-z)
+      b = 0.886*sqrt(EA*40.0)/Z_ion**0.66667
+      a = b + 0.0378*sin(1.5708*b)
+      Z_eff = Z_ion*(1.0-exp(-a)*(1.034-0.1777*exp(-0.08114*Z_ion)))
+      return
+      end
+c
+c
+c
+      real*4 function dSRECdO(Eph,Theta,N) ! REC cross section in lab
+                                ! Eph in MeV, Theta in degrees
+                                ! N is shell number K=1,L=2,M=3,...
+      IMPLICIT REAL*4 (A-H,O-Z)
+#include "common_coca_inc.F"
+      Eshell = 0.511*(1.0-sqrt(1.0-(0.0073*Z_proj/float(N))**2))
+      E_REC = Eshell + (g_proj-1.0)*0.511
+      cost = cosd(Theta)
+      costCM = (b_proj-cost)/(1.0-b_proj*cost) ! goto CM, including a
+      Theta_CM = 57.296*acos(costCM) ! forward-backward reversion
+      factor = 1.0/(g_proj*(1.0-b_proj*cost)) ! Lorentz transformation
+      Eph = E_REC*factor
+      dSRECdO = factor**2*BeSa(Z_proj,b_proj,Theta_CM)/float(N**3) ! in b/sr
+      if(N.eq.1) then		! K shell
+        dSRECdO = dSRECdO*min(max(0.,1.-(Z_proj-Z_proj_eff)/2.),1.)
+      end if
+      if(N.eq.2) then		! L shell
+        dSRECdO = dSRECdO*min(max(0.,1.-(Z_proj-Z_proj_eff-2.)/8.),1.)
+      end if
+      dSRECdO = Z_targ*dSRECdO
+      return
+      end
+c
+c
+c
+      real*4 function dSisodO(Eph,Theta,en) ! isotropic cross section (in cm) transf into lab
+                                ! Eph in MeV, Theta in degrees
+                                ! N is shell number K=1,L=2,M=3,...
+      IMPLICIT REAL*4 (A-H,O-Z)
+
+#include "common_coca_inc.F"
+
+      degree=atan(1.0)/45.0
+      pi=180.0*degree
+
+      cost = cos(theta*degree)
+      factor = 1.0/(g_proj*(1.0-b_proj*cost))   ! Lorentz transformation
+      Eph = en*factor
+      dSisodO = 1/(4*pi) * factor**2       ! in b/sr
+
+      return
+      end
+c
+c
+c
+      real*4 function BeSa(Z,beta,Theta_CM) ! Bethe-Salpeter cross section
+      IMPLICIT REAL*4 (A-H,O-Z)
+      cost = cosd(Theta_CM)	! for the REC of a free electron
+      sint = sind(Theta_CM)	! onto a bare charge Z
+      eta = Z/(137.0*beta)	! see e.g. Phys. Rev. A26 (1982) 154
+      eta2 = eta*eta
+      factor = exp(-4.0*eta*atan(1.0/eta))/(1.0-exp(-6.2832*eta))
+      F = factor*(eta*eta2/(1.0+eta2))**2
+      BeSa = 1090.0*F*(sint/(1.0-beta*cost)**2)**2 ! in barn/sr
+      return
+      end
+c
+c
+c
+      real*4 function dSKXdO(dummy) ! target KX-ray cross section in b/sr
+      IMPLICIT REAL*4 (A-H,O-Z)
+
+#include "common_coca_inc.F"
+#include "common_xray_inc.F"
+
+      Sclose = 1492.6*(Z_proj/Z_targ)**2
+      Sdistant = 1164.0*(Z_proj/Z_targ)**2*log(274.0*g_proj/Z_targ)
+      dSKXdO = Sclose + Sdistant ! in b/sr
+      return
+      end
+
+
+	real*4 function sind(t)
+	implicit none
+	real*4 t
+	sind = sin(t*0.0174532925199433)
+	return
+	end
+

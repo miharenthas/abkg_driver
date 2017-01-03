@@ -1,0 +1,77 @@
+Usage: gbkg [INPUT_FILES] [OPTIONS]
+
+All the argument non preceded by "-" are treated as input file names.
+After the first option appears, file names are no longer looked for.
+
+The program prints to STDOUT unless an output file name is specified,
+or the option "--output-many" is selected, causing the program to guess
+the output file names (one for each input file).
+
+By default, the program appends if a single output file is specified
+and overwrites if the file names are guessed. This behavior cannot be
+changed, as yet.
+
+When an output file name is specified the program uses bzip2 to compress
+the ASCII output, unless the option "--no-compression" is selected.
+Note that compression takes time.
+
+OPTIONS:
+	-v | --verbose :
+		causes the program to print statements about itself
+		on STDOUT. Do not use while piping into another
+		program!
+		
+	-d | --debug :
+		sets a "debug" flag for the conversion engine, causing
+		it to print statements about itself on STDOUT.
+		
+	-i | --input-file <name>: DEPRECATED.
+		pass A SINGLE input file to the program.
+		If other input files were passed before
+		the options, they are discarded.
+		Really, don't use.
+		
+	-o | --output-ascii :
+		sets the name of the single output file used
+		for all the input files. The file is always updated.
+	
+	--output-many :
+		Causes the program to create one output file for each
+		input file provided. The names are derived from the input
+		files' ones and files are always overwritten.
+	
+	--target-histogram <name>:
+		Indicates to the program which histogram to target for
+		conversion. Available options are (because ABKG):
+			h1 -- default.
+			h2
+	--nb-events <integer>:
+		sets the maximum number of events to be processed.
+		The default is 10^5.
+	
+	--tot-cs <float>:
+		specifies the total cross section to be used.
+		The default is 10^4.
+	
+	--target-thickness <float>:
+		specifies the thickness of the target.
+		The default is 0.519.
+	
+	--target-density <float>:
+		specifies the density of the target.
+		The default is 11.35.
+	
+	--target-molar-mass <float>:
+		specifies the molar mass of the target.
+		The default is 207.2 (natural lead).
+	
+	--no-compression :
+		causes the program to produce an uncompressed ASCII file.
+		WARNING: the output is around 1 GiB (compared to 100 MiB
+		of the compressed output) for a batch of 10^5 events.
+	
+	-h | --help :
+		displays this help.
+
+Author: Lorenzo Zanetti, TU Darmstadt - IKP <lzanetti@ikp.tu-darmstadt.de>
+Based on the conversion engine written by Dominic Rossi, PhD.

@@ -1,0 +1,16 @@
+#COMPILE=f77 -DCERNLIB_TYPE -g2 -c -O0 -check bounds -extend_source -I/us1/cern/98/include/geant321 -I/us1/cern/98/include
+COMPILE=f77 -DCERNLIB_TYPE -g0 -c -O2 -check bounds -extend_source -I/cern/98/include/geant321 -I/cern/98/include
+LINK=f77 -g0 -O2
+
+all: abkg 
+
+abkg: abkg.o
+	$(LINK) -o abkg abkg.o -L/us1/cern/98/lib -lpacklib
+
+%.o : %.F
+	$(COMPILE) $<
+
+clean:
+	rm abkg.o abkg
+
+
