@@ -236,7 +236,7 @@ ad_parse_input(){
 	if [ -z $ang_step ]; then ang_step=361; fi
 	if [ -z $no_compression ]; then no_compression=0; fi
 	if [ -z $target_thk ]; then target_thk="0.519"; fi
-	if [ -z $atomix_xs ]; then atomic_xs="1e4"; fi
+	if [ -z $atomic_xs ]; then atomic_xs="1e4"; fi
 	if [ -z $detector_list ]; then
 		detector_list=":TARGET:LeadTarget:TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
 	fi
