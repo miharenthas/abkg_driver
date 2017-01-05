@@ -129,6 +129,8 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 		if( strstr( det_opts, "Para45" ) ) m["TARGET"] = "target_Para45.geo.root";
 		if( strstr( det_opts, "LiH" ) ) m["TARGET"] = "target_LiH.geo.root";
 	}
+	if( strstr( det_opts, ":TARGETWHEEL:" ) ) m["TARGETWHEEL"] = "no_file_needed";
+	if( strstr( det_opts, ":TARGETSHIELDING:" ) ) m["TARGETSHIELDING"] = "no_file_needed";
 	if( strstr( det_opts, ":ALADIN:" ) ) m["ALADIN"] = "aladin_v13a.geo.root";
 	if( strstr( det_opts, ":GLAD:" ) ) m["GLAD"] = "glad_v13a.geo.root";
 	if( strstr( det_opts, ":CRYSTALBALL:" ) ) m["CRYSTALBALL"] = "cal_v13a.geo.root";
@@ -317,6 +319,18 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 		target->SetGeometryFileName( so.fDetlist["TARGET"].c_str() );
 		run->AddModule(target);
 	}
+	
+	//R3B target wheel mountings
+	if( !so.fDetlist["TARGETWHEEL"].empty() ) {
+		R3BModule* target_wheel = new R3BTargetWheel( "target_wheel" );
+		run->AddModule(target_wheel);
+	}
+	
+	//R3B target shielding
+	if( !so.fDetlist["TARGETSHIELDING"].empty() ) {
+		R3BModule* target_shielding = new R3BTargetShielding( "target_shielding" );
+		run->AddModule(target_shielding);
+	}
 
 	//R3B SiTracker Cooling definition
 	if( !so.fDetlist["VACVESSELCOOL"].empty() ) {
@@ -347,7 +361,6 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 		                                                 // 0: default, only "DHIT"-ish
 		                                                 // 1: only "HIT"-ish
 		                                                 // 2: both.
-		                                                 // NOTE: 1 and 2 are *BROKEN*
 		xball->SetGeometryFileName( so.fDetlist["CRYSTALBALL"].c_str() );
 		run->AddModule(xball);
 	}

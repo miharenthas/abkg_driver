@@ -43,7 +43,7 @@ spc_bin="" #bin of the spectrum
 ang_start="" #start of the considered solid angle
 ang_stop="" #end of the solid angle
 ang_step="" #stepping of the angle (NOTE: 361 seems to be the max)
-detector_list=":TARGET:LeadTarget:CRYSTALBALL:" #list of detectors to simulate
+detector_list="" #list of detectors to simulate
 target_thk="" #target thickness
 atomic_xs="" #atomic processes cross section
 
@@ -236,7 +236,10 @@ ad_parse_input(){
 	if [ -z $ang_step ]; then ang_step=361; fi
 	if [ -z $no_compression ]; then no_compression=0; fi
 	if [ -z $target_thk ]; then target_thk="0.519"; fi
-	if [ -z $atomix_xs ]; then atomic_xs "1e4"; fi
+	if [ -z $atomix_xs ]; then atomic_xs="1e4"; fi
+	if [ -z $detector_list ]; then
+		detector_list=":TARGET:LeadTarget:TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
+	fi
 
 	#count the jobs
 	for ngs in $energy_range; do
