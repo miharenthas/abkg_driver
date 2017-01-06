@@ -131,6 +131,10 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	}
 	if( strstr( det_opts, ":TARGETWHEEL:" ) ) m["TARGETWHEEL"] = "no_file_needed";
 	if( strstr( det_opts, ":TARGETSHIELDING:" ) ) m["TARGETSHIELDING"] = "no_file_needed";
+	if( strstr( det_opts, ":TARGETATMOSPHERE:" ) ){
+		if( strstr( det_opts, "AtmoVacuum" ) ) m["TARGETATMOSPHERE"] = "vacuum";
+		if( strstr( det_opts, "AtmoAir" ) ) m["TARGETATMOSPHERE"] = "air";
+	}
 	if( strstr( det_opts, ":ALADIN:" ) ) m["ALADIN"] = "aladin_v13a.geo.root";
 	if( strstr( det_opts, ":GLAD:" ) ) m["GLAD"] = "glad_v13a.geo.root";
 	if( strstr( det_opts, ":CRYSTALBALL:" ) ) m["CRYSTALBALL"] = "cal_v13a.geo.root";
@@ -313,12 +317,39 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 	cave->SetGeometryFileName( "r3b_cave.geo" );
 	run->AddModule( cave );
 
+	//Tracker
+	//NOTE: this is here because TargetAtmosphere will check on it
+	//      and make its geometry only if this hasn't been
+	//      instantiated yet. This avoids overlaps.
+	if( !so.fDetlist["TRACKER"].empty() ) {
+		R3BDetector* tra = new R3BTra("Tracker", kTRUE);
+		tra->SetGeometryFileName( so.fDetlist["TRACKER"].c_str() );
+		tra->SetEnergyCut(1e-4);
+		run->AddModule(tra);
+	}
+
 	//R3B Target definition
 	if( !so.fDetlist["TARGET"].empty() ) {
 		R3BModule* target= new R3BTarget( so.Target );
 		target->SetGeometryFileName( so.fDetlist["TARGET"].c_str() );
 		run->AddModule(target);
 	}
+	
+	//R3B target atmosphere
+	if( !so.fDetlist["TARGETATMOSPHERE"].empty() ) {
+		R3BTargetAtmosphere* target_atm;
+		if( !so.fDetlist["TARGETATMOSPHERE"].compare( "air" ) ){
+			target_atm = new R3BTargetAtmosphere( "target_atmosphere",
+			                                      "R3BTargetAtmosphere",
+			                                      R3BTargetAtmosphere::AIR );
+		} else {
+			target_atm = new R3BTargetAtmosphere( "target_atmosphere",
+			                                      "R3BTargetAtmosphere",
+			                                      R3BTargetAtmosphere::VACUUM );
+		}
+		run->AddModule(target_atm);
+	}
+	
 	
 	//R3B target wheel mountings
 	if( !so.fDetlist["TARGETWHEEL"].empty() ) {
@@ -372,14 +403,6 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 		((R3BCalo *)calo)->SetNonUniformity(1.0);
 		calo->SetGeometryFileName( so.fDetlist["CALIFA"].c_str() );
 		run->AddModule(calo);
-	}
-
-	// Tracker
-	if( !so.fDetlist["TRACKER"].empty() ) {
-		R3BDetector* tra = new R3BTra("Tracker", kTRUE);
-		tra->SetGeometryFileName( so.fDetlist["TRACKER"].c_str() );
-		tra->SetEnergyCut(1e-4);
-		run->AddModule(tra);
 	}
 
 	// STaRTrack

@@ -34,6 +34,7 @@
 #include "R3BModule.h"
 #include "R3BDetector.h"
 #include "R3BTarget.h"
+#include "R3BTargetAtmosphere.h"
 #include "R3BTargetWheel.h"
 #include "R3BTargetShielding.h"
 #include "R3BCave.h"

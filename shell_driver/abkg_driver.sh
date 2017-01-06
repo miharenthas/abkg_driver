@@ -238,7 +238,7 @@ ad_parse_input(){
 	if [ -z $target_thk ]; then target_thk="0.519"; fi
 	if [ -z $atomic_xs ]; then atomic_xs="1e4"; fi
 	if [ -z $detector_list ]; then
-		detector_list=":TARGET:LeadTarget:TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
+		detector_list=":TARGET:LeadTarget:TARGETATMOSPHERE:AtmoAir:TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
 	fi
 
 	#count the jobs
@@ -307,13 +307,17 @@ ad_job_control(){
 		nb_active_jobs=$( pgrep -P $$ -c "$1" )
 		
 		#because, when Geant3 crashes, we get stuck on gdb for ages
-		#here is a check we will also perform
+		#here is a check we will also perform. It's cumbersome
+		#because of the way ROOT launches gdb on crash.
 		nb_failed=$( pgrep -c "gdb" )
 		if [ $nb_failed -gt 0 ]; then
 			for a_job in $( pgrep -P $$ "$1" -d " " ); do
-				kill -SIGKILL $( pgrep -P $a_job "gdb" )
-				echo "WARNING: root process $a_job crashed and was killed. See log for details."
-				echo "         You may have to run this particular job again..."
+				if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
+					kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
+					
+					echo "WARNING: root process $a_job crashed and was killed. See log for details."
+					echo "         You may have to run this particular job again..."
+				fi
 			done
 		fi
 	done
@@ -670,16 +674,20 @@ ad_run_simulation_MP(){
 		
 		#wait for all the jobs to complete, policing gdb calls
 		#because, when Geant3 crashes, we get stuck on gdb for ages
-		#here is a check we will also perform
+		#here is a check we will also perform. It's cumbersome
+		#because of the way ROOT launches gdb on crash.
 		while [ $( pgrep -P $$ -c "sbkg" ) -gt 0 ]; do
 			sleep 1
 			nb_failed=$( pgrep -c "gdb" )
 			if [ $nb_failed -gt 0 ]; then
-				for a_job in $( pgrep -P $$ "sbkg" -d " " ); do
-					kill -SIGKILL $( pgrep -P $a_job "gdb" )
+				for a_job in $( pgrep -P $$ "$1" -d " " ); do
+				if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
+					kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
+					
 					echo "WARNING: root process $a_job crashed and was killed. See log for details."
 					echo "         You may have to run this particular job again..."
-				done
+				fi
+			done
 			fi
 		done
 		
@@ -744,7 +752,7 @@ if [ $do_simulation -eq 1 ]; then
 fi
 
 #look at the clock at the beginning of ops
-wallclock_start=$( date )
+wallclock_start=$( date +%F\ %T )
 
 #create the configuration files
 ad_make_config_files
@@ -798,7 +806,7 @@ fi
 mv $LOG_FILE $ROOT_IO_DIR/$LOG_FILE
 
 #look at the clock now
-wallclock_stop=$( date )
+wallclock_stop=$( date +%F\ %T )
 
 echo "Wall clock at the beginning of operations: --- $wallclock_start"
 echo "Wall clock at the end of operations: --------- $wallclock_stop"
