@@ -28,6 +28,6 @@ NOTE: to keep events as small as possible, the smallest numerical type that guar
 DETECTOR LIST:
 
 As of now, the detector supported are the ones in R3B:
-TARGET, ALADIN, GLAD, CRYSTALBALL, CALIFAv14a, CALIFAv13_811, TOF, MTOF, DTOF, DHC, TRACKER, STaRTrackv14a, STaRTrackv13a, GFI, LAND, SCINTNEULAND, VACVESSELCOOLv14a, VACVESSELCOOLv13a, MFI, PSP.
+TARGET, TARGETWHEEL, TARGETSHIELDING, TARGETATMOSPHERE, ALADIN, GLAD, CRYSTALBALL, CALIFAv14a, CALIFAv13_811, TOF, MTOF, DTOF, DHC, TRACKER, STaRTrackv14a, STaRTrackv13a, GFI, LAND, SCINTNEULAND, VACVESSELCOOLv14a, VACVESSELCOOLv13a, MFI, PSP.
 
 The detector list shall be assembled as explained in the help file; whenever a mutiversion detector is specified without its version, the "latest" is automatically selected.

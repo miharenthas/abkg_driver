@@ -1,6 +1,12 @@
 Usage: ./abkg_driver [OPTIONS]
 
 Where OPTIONS are:
+--template-root <string>: sets the prefix of the template file that
+                          will be used as a base for the simulation.
+                          The recommended format is:
+                              <A><elem_beam>_<A><elem_target>_
+                          To which "TEMPLATE.abkg" is appended.
+
 --file-name <string>: sets the output file name tail
                       aMeV[energy]_<string>
 -f <string>: like --file-name
@@ -17,6 +23,12 @@ Where OPTIONS are:
 --en-sigma: sets EN_SIGMA
 --ang-cut: sets ANG_CUT
 
+--target-thickness <number> : sets the thickness of the target.
+                              The default is 0.514 (g).
+
+--atomic-xsection <number> : sets the cross section of the atomic
+                             processes. The default is 1e4.
+
 --spc-start <start> : sets the lowest energy of the spectrum
 --s <start> : same as --spc-start
 
@@ -25,6 +37,10 @@ Where OPTIONS are:
 
 --spc-bin <bin>: sets the bin of the energy spectrum
 -b <bin> : same as --spc-bin
+
+--spc-range <begin> <end> <step> : instead of one, produces a tiling
+                                   of ABKG spectra from <begin> to
+                                   <end> and <step> wide.
 
 --angle-start <angle> : sets the start of the solid angle considered
                         actually, the beginning of the aperture from

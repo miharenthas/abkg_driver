@@ -15,7 +15,7 @@ ROOT_FLAGS = `root-config --cflags`
 ROOT_FLAGS += -L $(SIMPATH)/lib -L $(FAIRROOTPATH)/lib
 CXX_FLAGS = -Wno-varargs -std=c++11 -I $(INCLUDE_D)
 OBJECTS = gen_bkg_from_histo r3b_ascii_gen r3bsim_driver
-BINARIES = $(BIN_D)/gen_bkg_from_histo.o $(BIN_D)/r3b_ascii_gen.o
+BINARIES = $(BIN_D)/gen_bkg_from_histo.o $(BIN_D)/r3b_ascii_gen.o $(BIN_D)/r3bsim_driver.o
 PROGRAMS = gbkg sbkg
 
 CXX = g++

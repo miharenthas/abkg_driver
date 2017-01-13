@@ -19,7 +19,7 @@ Options:
   -p --parameter-file <name> Sets <name> as the parameter file.
                                Although not mandatoty, it's recommended
                                that such a file bears the ".root" suffix.
-                               The default is "r3bsim.root".
+                               The default is "r3bpar.root".
   
   -n --nb-events <integer>   Sets the maximum number of events to be used
                                in the simulation. If this exceeds the number

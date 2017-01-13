@@ -104,6 +104,11 @@ ad_check_env(){
 ad_parse_input(){
 	while [ $# -gt "0" ]; do
 		case $1 in
+			--template-root )
+				shift
+				TEMPLATE_ROOT=$1
+				TEMPLATE_FILE=$TEMPLATE_ROOT"TEMPLATE.abkg"
+				;;
 			-n | --nb-events )
 				shift
 				nb_events=$1
