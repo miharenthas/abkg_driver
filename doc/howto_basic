@@ -1,0 +1,15 @@
+This file is a barebone guide on how to run and operate ABKG
+
+0) make sure CERNLIB is reachable. If not, call it up.
+
+1) get a configuration file from "config_files" (the anatomy of those files is described in its own document but it should be commented).
+
+2) $ ./abkg --it will request a config file. You should specify the path to it.
+
+3) if the config file is valid, it works for a bit and then produces a .hst output. Otherwise it will crash in some horrible way.
+
+4) the .hst file is not a ROOT file; call up ROOT if it is not alreay reachable.
+
+5) $ h2root <your_hst_file.hst>
+
+6) Congratulations! You have a simulated background. To convert it in useful information for R3BRoot, you need Dominic's script "gen_bkg_from_histo.C"

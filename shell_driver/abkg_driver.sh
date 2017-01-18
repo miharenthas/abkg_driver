@@ -17,9 +17,9 @@
 #global constants
 
 AD_HOME_DIR="./"
-ROOT_IO_DIR="./"
-CONFIG_FILE_DIR="cnf_files" #config file directory
-OUTPUT_FILE_DIR="output_files" #output file directory
+ROOT_IO_DIR="../abkg_working"
+CONFIG_FILE_DIR=$ROOT_IO_DIR"/cnf_files" #config file directory
+OUTPUT_FILE_DIR=$ROOT_IO_DIR"/output_files" #output file directory
 #NOTE: ABKG has strong limitation on the length of the file name
 #      thus relative paths are used. Be careful!
 
@@ -37,8 +37,8 @@ energy_range="" #range of energies to be investigated
 en_gamma=""
 en_sigma=""
 ang_cut=""
-spc_range="" #range of spectrum(s) to produce with ABKG
-spc_step="" #the width of the spectrum
+spc_start="" #where the spectrum starts
+spc_stop="" #where the spectrum stops
 spc_bin="" #bin of the spectrum
 ang_start="" #start of the considered solid angle
 ang_stop="" #end of the solid angle
@@ -79,16 +79,16 @@ ad_check_env(){
 		fi
 	fi
 	if [ -z "$(echo $PATH | grep \"gbkg\")" ]; then
-		if [ -x $ABKG_HOME_DIR/root_scripts/gbkg ]; then
-			export PATH=$PATH:$ABKG_HOME_DIR/root_scripts/
+		if [ -x $ABKG_HOME_DIR/root_progs/gbkg ]; then
+			export PATH=$PATH:$ABKG_HOME_DIR/root_progs/
 		else
-			echo "gpkg is unreachable. Did you compile it?"
+			echo "gbkg is unreachable. Did you compile it?"
 			exit 1
 		fi
 	fi
 	if [ -z "$(echo $PATH | grep \"sbkg\")" ]; then
-		if [ -x $ABKG_HOME_DIR/root_scripts/sbkg ]; then
-			export PATH=$PATH:$ABKG_HOME_DIR/root_scripts/
+		if [ -x $ABKG_HOME_DIR/root_progs/sbkg ]; then
+			export PATH=$PATH:$ABKG_HOME_DIR/root_progs/
 		else
 			echo "sbkg is unreachable. Did you compile it?"
 			exit 1
@@ -144,9 +144,16 @@ ad_parse_input(){
 				shift
 				target_thk=$1
 				;;
-			--atomic-xsection )
+			-x | --atomic-xsection )
 				shift
 				atomic_xs=$1
+				;;
+			-X | --atomic-xs-range )
+				shift
+				begin=$1; shift
+				end=$1; shift
+				step=$1
+				atomic_xs=$(seq -s " " $begin $step $end)
 				;;
 			--spc-start )
 				shift
@@ -155,13 +162,6 @@ ad_parse_input(){
 			--spc-stop )
 				shift
 				spc_stop=$1
-				;;
-			-S | --spc-range )
-				shift
-				spc_start=$1; shift
-				spc_stop=$1; shift
-				spc_step=$1
-				spc_range=$(seq -s " " $spc_start $spc_step $(($spc_stop-$spc_step)))
 				;;
 			-b | --spc-bin )
 				shift
@@ -229,26 +229,23 @@ ad_parse_input(){
 	if [ -z $en_gamma ]; then en_gamma="1000."; fi
 	if [ -z $en_sigma ]; then en_sigma="100."; fi
 	if [ -z $ang_cut ]; then ang_cut="50."; fi
-	if [ -z $spc_start ]; then spc_start="30.0"; fi
-	if [ -z $spc_stop ]; then spc_stop="3030.0"; fi
-	if [ -z "$spc_range" ]; then
-		spc_range=$spc_start
-		spc_step=$(( $spc_stop-$spc_start ))
-	fi
-	if [ -z $spc_bin ]; then spc_bin=401; fi
+	if [ -z $spc_start ]; then spc_start="30"; fi
+	if [ -z $spc_stop ]; then spc_stop="3030"; fi
+	if [ -z $spc_bin ]; then spc_bin=1001; fi
 	if [ -z $ang_start ]; then ang_start="0.0"; fi
 	if [ -z $ang_stop ]; then ang_stop="180.0"; fi
 	if [ -z $ang_step ]; then ang_step=361; fi
 	if [ -z $no_compression ]; then no_compression=0; fi
-	if [ -z $target_thk ]; then target_thk="0.519"; fi
-	if [ -z $atomic_xs ]; then atomic_xs="1e4"; fi
+	if [ -z $target_thk ]; then target_thk="1.134"; fi
+	if [ -z "$atomic_xs" ]; then atomic_xs="1.07e5"; fi
 	if [ -z $detector_list ]; then
-		detector_list=":TARGET:LeadTarget:TARGETATMOSPHERE:AtmoAir:TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
+		detector_list=":TARGET:LeadTarget:TARGETATMOSPHERE:AtmoVacuum:"
+		detector_list=$detector_list"TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
 	fi
 
 	#count the jobs
-	for ngs in $energy_range; do
-		for scp in $spc_range; do
+	for nrg in $energy_range; do
+		for xs in $atomic_xs; do
 			NB_JOBS_GLOBAL=$(( $NB_JOBS_GLOBAL+1 ))
 		done
 	done
@@ -343,6 +340,8 @@ ad_count_global_jobs(){
 #workhorses:
 #function "ad_make_config_files()" parses the template according to specification to
 #         create a bunch of ABKG config files.
+#function "ad_join_root_files()" stitches root files together using hadd. It takes in
+#         many names and uses the last one as the output.
 #function "ad_ABKG_runner()" runs ABKG on the generated config files
 #function "ad_convert_histogram()" converts ABKG histograms to root files
 #function "ad_generate_events()" generates ASCII event files to be used with the
@@ -362,24 +361,46 @@ ad_make_config_files(){
 	#do the copying and the editing
 	current_file=""
 	for nrg in $energy_range; do
-		for spc in $spc_range; do
-			current_file="$CONFIG_FILE_DIR/$TEMPLATE_ROOT$nrg-$spc+$spc_step.abkg"
-			cp $AD_HOME_DIR/$TEMPLATE_FILE $current_file
-		
-			#build the complete filename, escaping the slashes properly
-			complete_filename="../output_files/amev"$(printf "%04d" $nrg)"_kev"$spc"+"$spc_step$filename 
-			complete_filename=$( echo $complete_filename | sed 's/\//\\\//g' )
-		
-			sed -i "s/##OUTPUT_NAME/$complete_filename/g" $current_file
-			sed -i "s/##EN_GAMMA/$en_gamma/g; s/##EN_SIGMA/$en_sigma/g; s/##ANG_CUT/$ang_cut/g" \
-				  $current_file
-			sed -i "s/##BEAM_ENERGY/$nrg/g" $current_file
-			sed -i "s/##SPC_START/$spc/g; s/##SPC_STOP/$(($spc+$spc_step))/g; s/##SPC_BIN/$spc_bin/g" \
-				  $current_file
-			sed -i "s/##ANG_START/$ang_start/g; s/##ANG_STOP/$ang_stop/g; s/##ANG_STEP/$ang_step/g" \
-				  $current_file
-		done
+		current_file="$CONFIG_FILE_DIR/$TEMPLATE_ROOT$nrg-$spc_start-$spc_stop.abkg"
+		cp $AD_HOME_DIR/$TEMPLATE_FILE $current_file
+	
+		#build the complete filename, escaping the slashes properly
+		complete_filename="../output_files/amev"$(printf "%04d" $nrg)"_kev"$spc_start"-"$spc_stop$filename 
+		complete_filename=$( echo $complete_filename | sed 's/\//\\\//g' )
+	
+		sed -i "s/##OUTPUT_NAME/$complete_filename/g" $current_file
+		sed -i "s/##EN_GAMMA/$en_gamma/g; s/##EN_SIGMA/$en_sigma/g; s/##ANG_CUT/$ang_cut/g" \
+			  $current_file
+		sed -i "s/##BEAM_ENERGY/$nrg/g" $current_file
+		sed -i "s/##SPC_START/$spc_start/g; s/##SPC_STOP/$spc_stop/g; s/##SPC_BIN/$spc_bin/g" \
+			  $current_file
+		sed -i "s/##ANG_START/$ang_start/g; s/##ANG_STOP/$ang_stop/g; s/##ANG_STEP/$ang_step/g" \
+			  $current_file
 	done
+}
+
+#-------------------------------------------------------------------------------------
+#this function stitches root files together
+#the last input is the output file name
+ad_join_root_files(){
+	tmp_files=""
+	while [ "$2" != "" ]; do
+		tmp_files=$tmp_files" "$1
+		shift;
+	done
+	stitched_file=$1
+	
+	if [ $( du -c | grep total | sed "s/total//g" ) -le 103809024 ]; then #if the total expected
+	                                                                      #size is less than 99GiB
+	                                                                      #join, freak out otherwise
+	
+		hadd -v 0 $stitched_file $tmp_files 1>&2 2>/dev/null
+		
+		#cleanup (nonoptional here)
+		rm $tmp_files
+	else
+		echo "WARNING: too much data to join root files. Skipping."
+	fi
 }
 
 #-------------------------------------------------------------------------------------
@@ -468,25 +489,31 @@ ad_generate_events(){
 	ad_count_global_jobs $files_to_process
 	
 	for a_file in $files_to_process; do
-		#launch one instance of "gbkg"
-		#NOTE: for different targets, different options have to be
-		#      passed to gbkg (which does not really use a config file, yet)
-		#      this means some more nouance is needed here.
-		#      Also, when a fullblown program for the simulations will be
-		#      available, this will live in a pipe afrer gbkg.
-		if [ $no_compression -eq 1 ]; then
-			gbkg $a_file --output-many --nb-events $nb_events \
-			             --target-thickness $target_thk \
-			             --tot-cs $atomic_xs \
-			             --no-compression & #this should be silent
-		else
-			gbkg $a_file --output-many --nb-events $nb_events \
-			             --tot-cs $atomic_xs \
-			             --target-thickness $target_thk &
-		fi
+		for xs in $atomic_xs; do
+			#launch one instance of "gbkg"
+			#NOTE: for different targets, different options have to be
+			#      passed to gbkg (which does not really use a config file, yet)
+			#      this means some more nouance is needed here.
+			#      Also, when a fullblown program for the simulations will be
+			#      available, this will live in a pipe afrer gbkg.
+			
+			out_fname=""
+			if [ $no_compression -eq 1 ]; then
+				out_fname=$( echo $a_file | sed "s/.root/_"$xs"mBarn.dat/g" )
+				gbkg $a_file -o $out_fname --nb-events $nb_events \
+					           --target-thickness $target_thk \
+					           --tot-cs $xs \
+					           --no-compression & #this should be silent
+			else
+				out_fname=$( echo $a_file | sed "s/.root/_"$xs"mBarn.bz2/g" )
+				gbkg $a_file -o $out_fname --nb-events $nb_events \
+					           --tot-cs $xs \
+					           --target-thickness $target_thk &
+			fi
 		
-		nb_active_jobs=$( pgrep -P $$ -c "gbkg" )
-		echo "GEN: generation of $a_file launched."
+			nb_active_jobs=$( pgrep -P $$ -c "gbkg" )
+			echo "GEN: generation of $out_fname launched."
+		done
 		
 		#job control
 		ad_job_control "gbkg"
@@ -597,34 +624,36 @@ ad_run_simulation_P(){
 	ad_count_global_jobs $files_to_process
 	
 	for a_file in $files_to_process; do
-		output_name=$( echo $a_file | sed "s/\.root/_sbkg\.root/g" ) #make the output name
-		par_name=$( echo $a_file | sed "s/\.root/_par_sbkg\.root/g" ) #make the parfile name
+		for xs in $atomic_xs; do
+			output_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_sbkg\.root/g" ) #make the output name
+			par_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg\.root/g" ) #make the parfile name
 		
-		#launch the program on the ascii file, suppressing the output
-		if [ $save_geometry -eq 1 ]; then
-			gbkg $a_file --nb-events $nb_events \
-			             --tot-cs $atomic_xs \
-			             --target-thickness $target_thk | \
-			sbkg --nb-events $nb_events \
-			     --detector-list $detector_list \
-			     -o $output_name -p $par_name \
-			     --no-magnet --save-geometry \
-			     1>>$LOG_FILE 2>&1 &
-		else
-			gbkg $a_file --nb-events $nb_events \
-			             --tot-cs $atomic_xs \
-			             --target-thickness $target_thk | \
-			sbkg --nb-events $nb_events \
-			     --detector-list $detector_list \
-			     -o $output_name -p $par_name \
-			     --no-magnet --save-geometry \
-			     1>>$LOG_FILE 2>&1 &
-		fi
+			#launch the program on the ascii file, suppressing the output
+			if [ $save_geometry -eq 1 ]; then
+				gbkg $a_file --nb-events $nb_events \
+					           --tot-cs $xs \
+					           --target-thickness $target_thk | \
+				sbkg --nb-events $nb_events \
+					   --detector-list $detector_list \
+					   -o $output_name -p $par_name \
+					   --no-magnet --save-geometry \
+					   1>>$LOG_FILE 2>&1 &
+			else
+				gbkg $a_file --nb-events $nb_events \
+					           --tot-cs $xs \
+					           --target-thickness $target_thk | \
+				sbkg --nb-events $nb_events \
+					   --detector-list $detector_list \
+					   -o $output_name -p $par_name \
+					   --no-magnet --save-geometry \
+					   1>>$LOG_FILE 2>&1 &
+			fi
 		
-		echo "SIM: simulation pipeline of $a_file launched."
+			echo "SIM: simulation pipeline of $a_file launched."
 		
-		#job control
-		ad_job_control "sbkg"
+			#job control
+			ad_job_control "sbkg"
+		done
 	done
 	
 	#at the end of things, wait for all the jobst to terminate
@@ -646,7 +675,7 @@ ad_run_simulation_MP(){
 	#      which is kinda big. A more general version may follow.
 	files_to_process=$( ls $OUTPUT_FILE_DIR/*.root )
 	
-	ad_count_global_jobs $files_to_process
+	ad_count_global_jobs $files_to_process $atomic_xs
 	
 	if [ $NB_JOBS_GLOBAL -ge $NB_ONLINE_CPUs ]; then
 		echo "NOTE: using --mux-simulation for more jobs than CPUs is dumb."
@@ -660,59 +689,51 @@ ad_run_simulation_MP(){
 	#loop on each file splitting the job in how many CPUs we have
 	#TODO: use temporary fikes for this
 	for a_file in $files_to_process; do
-	echo "MSIM: launching simulation pipeline of $a_file:"
-		for a_job in $( seq -s " " $NB_ONLINE_CPUs ); do
-			output_name=$( echo $a_file | sed "s/\.root/_sbkg_$a_job\.root/g" ) #make the output name
-			par_name=$( echo $a_file | sed "s/\.root/_par_sbkg_$a_job\.root/g" ) #make the parfile name
+		for xs in $atomic_xs; do
+			echo "MSIM: launching simulation pipeline of $a_file"
+			echo "      for xsection $xs mBarn:"
+			for a_job in $( seq -s " " $NB_ONLINE_CPUs ); do
+				output_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_sbkg_$a_job\.root/g" ) #output name
+				par_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg_$a_job\.root/g" ) #parfile name
 			
-			gbkg $a_file --nb-events $nb_evt_per_job \
-			             --tot-cs $atomic_xs \
-			             --target-thickness $target_thk | \
-			sbkg --nb-events $nb_evt_per_job \
-			     --detector-list $detector_list \
-			     -o $output_name -p $par_name \
-			     --no-magnet --save-geometry \
-			     1>>$LOG_FILE 2>&1 &
+				gbkg $a_file --nb-events $nb_evt_per_job \
+					           --tot-cs $xs \
+					           --target-thickness $target_thk | \
+				sbkg --nb-events $nb_evt_per_job \
+					   --detector-list $detector_list \
+					   -o $output_name -p $par_name \
+					   --no-magnet --save-geometry \
+					   1>>$LOG_FILE 2>&1 &
 			
-			echo -e "\tJob $a_job has started."
-		done
+				echo -e "\tJob $a_job has started."
+			done
 		
-		#wait for all the jobs to complete, policing gdb calls
-		#because, when Geant3 crashes, we get stuck on gdb for ages
-		#here is a check we will also perform. It's cumbersome
-		#because of the way ROOT launches gdb on crash.
-		while [ $( pgrep -P $$ -c "sbkg" ) -gt 0 ]; do
-			sleep 1
-			nb_failed=$( pgrep -c "gdb" )
-			if [ $nb_failed -gt 0 ]; then
-				for a_job in $( pgrep -P $$ "$1" -d " " ); do
-				if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
-					kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
+			#wait for all the jobs to complete, policing gdb calls
+			#because, when Geant3 crashes, we get stuck on gdb for ages
+			#here is a check we will also perform. It's cumbersome
+			#because of the way ROOT launches gdb on crash.
+			while [ $( pgrep -P $$ -c "sbkg" ) -gt 0 ]; do
+				sleep 1
+				nb_failed=$( pgrep -c "gdb" )
+				if [ $nb_failed -gt 0 ]; then
+					for a_job in $( pgrep -P $$ "$1" -d " " ); do
+					if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
+						kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
 					
-					echo "WARNING: root process $a_job crashed and was killed. See log for details."
-					echo "         You may have to run this particular job again..."
+						echo "WARNING: root process $a_job crashed and was killed. See log for details."
+						echo "         You may have to run this particular job again..."
+					fi
+				done
 				fi
 			done
-			fi
+		
+			#join the files together:
+			ad_join_root_files $( ls $OUTPUT_FILE_DIR/*"$xs"mBarn_par_sbkg_[1-9]*.root ) \
+			                   $( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg\.root/g" )
+			
+			ad_join_root_files $( ls $OUTPUT_FILE_DIR/*"$xs"mBarn_sbkg_[1-9]*.root ) \
+			                   $( echo $a_file | sed "s/\.root/_"$xs"mBarn_sbkg\.root/g" )
 		done
-		
-		#join the files together:
-		#the parfiles (because the condition to list them is morestrict)
-		tmp_files=$( ls $OUTPUT_FILE_DIR/*_par_sbkg_[1-9]*.root )
-		stitched_file=$( echo $a_file | sed "s/\.root/_par_sbkg\.root/g" )
-		hadd -v 0 $stitched_file $tmp_files 1>&2 2>/dev/null
-		
-		#cleanup (nonoptional here)
-		rm $tmp_files
-		
-		#gather the output files
-		tmp_files=$( ls $OUTPUT_FILE_DIR/*_sbkg_[1-9]*.root )
-		stitched_file=$( echo $a_file | sed "s/\.root/_sbkg\.root/g" )
-		hadd -v 0 $stitched_file $tmp_files 1>&2 2>/dev/null
-		
-		#cleanup (nonoptional here)
-		rm $tmp_files
-		
 	done
 	
 	#clean up the sources, if requested
