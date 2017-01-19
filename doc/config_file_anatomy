@@ -1,0 +1,44 @@
+This file illustrates the anatomy of a configuration file for ABKG
+
+#line 1: it's a flag, activating and deactivating various options. In little endian, bit number:
+	0 --> include primary brehmsstrahlung.
+	1 --> include secondary (dragging) brehmmstrahlung.
+	2 --> include K-shell x-rays
+	3 --> include L-shell x-rays
+	4 --> include isotropic gammas (usually deactivated)
+	5 --> include x-rays from the target
+	
+	For S412, the flag 2F_hex = 00101111_bin should always be ok.
+
+#line 2: sets the parameters for the generated isotropic gammas, it has three comma separated values:
+	en_gamma,sig_gamma,angle_cut
+	-en_gamma --> the maximum energy (int KeV?) for the generated gammas
+	-sig_gamma --> ??? some kind of sigma (a spread?)
+	-angle_cut --> the cut on the angle with respect of the beamline.
+
+#line 3: projectile details, three comma separated values:
+	mass_number,charge,beam_energy
+
+#line 4: target details, three comma separated values:
+	mass_number,charge,density
+	
+#line 5: tabulated values for the the target's proper x-rays, two space separated values:
+	number_of_gammas "flour_targ"
+
+#line 6: number_of_gammas values relative to the target's proper x-rays, space separated values:
+	first_line second_line ...
+
+#line 7: respective intesities of the target's x-rays, number_of_gamma space separated values:
+	first_line_intensity second_line_intesity ...
+
+#line 8-1 : compton profile of the target (look it up in a book. Or google).
+
+#line 9: lowest, highest energy and stepping for the generated spectrum. Three space separated values.
+	e_start e_stop number_of_bins
+
+#line 10: fraction of the solid angle and stepping interested by the simulation, three space separated values:
+	th_start th_stop, binning.
+
+#line 11: name of the output file.
+
+#line 12: integration accuracy.

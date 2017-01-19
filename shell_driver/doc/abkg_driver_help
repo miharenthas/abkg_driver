@@ -11,11 +11,11 @@ Where OPTIONS are:
                       aMeV[energy]_<string>
 -f <string>: like --file-name
 
---energy-range <begin> <end> <step> : sets the energy range
+--energy-range <begin> <step> <end> : sets the energy range
                                       starts from <begin>
                                       ends at <end>
                                       stepping of <step>
--E <begin> <end> <step> : like --energy-range
+-E <begin> <step> <end> : like --energy-range
 
 -e <energy> : launch on one single energy.
 
@@ -24,10 +24,13 @@ Where OPTIONS are:
 --ang-cut: sets ANG_CUT
 
 --target-thickness <number> : sets the thickness of the target.
-                              The default is 0.514 (g).
+                              The default is 1.134 (g/cm^2).
 
 --atomic-xsection <number> : sets the cross section of the atomic
-                             processes. The default is 1e4.
+                             processes. The default is 1.07e5.
+--atomic-xs-range <begin> <step> <end> : sets a range of atomic cross
+                                         sections instead of just one.
+-X <begin> <step> <end> : same as --atomic-xs-range.
 
 --spc-start <start> : sets the lowest energy of the spectrum
 --s <start> : same as --spc-start
@@ -37,10 +40,6 @@ Where OPTIONS are:
 
 --spc-bin <bin>: sets the bin of the energy spectrum
 -b <bin> : same as --spc-bin
-
---spc-range <begin> <end> <step> : instead of one, produces a tiling
-                                   of ABKG spectra from <begin> to
-                                   <end> and <step> wide.
 
 --angle-start <angle> : sets the start of the solid angle considered
                         actually, the beginning of the aperture from
