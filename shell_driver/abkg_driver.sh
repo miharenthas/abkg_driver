@@ -214,8 +214,8 @@ ad_parse_input(){
 				
 				ad_check_a_dir $ROOT_IO_DIR
 				
-				CONFIG_FILE_DIR=$ROOT_IO_DIR$CONFIG_FILE_DIR
-				OUTPUT_FILE_DIR=$ROOT_IO_DIR$OUTPUT_FILE_DIR
+				CONFIG_FILE_DIR=$ROOT_IO_DIR"/cnf_files"
+				OUTPUT_FILE_DIR=$ROOT_IO_DIR"/output_files"
 				;;
 			* )
 				shift
