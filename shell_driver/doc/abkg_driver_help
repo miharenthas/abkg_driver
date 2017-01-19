@@ -11,11 +11,11 @@ Where OPTIONS are:
                       aMeV[energy]_<string>
 -f <string>: like --file-name
 
---energy-range <begin> <end> <step> : sets the energy range
+--energy-range <begin> <step> <end> : sets the energy range
                                       starts from <begin>
                                       ends at <end>
                                       stepping of <step>
--E <begin> <end> <step> : like --energy-range
+-E <begin> <step> <end> : like --energy-range
 
 -e <energy> : launch on one single energy.
 
@@ -28,9 +28,9 @@ Where OPTIONS are:
 
 --atomic-xsection <number> : sets the cross section of the atomic
                              processes. The default is 1.07e5.
---atomic-xs-range <begin> <end> <step> : sets a range of atomic cross
+--atomic-xs-range <begin> <step> <end> : sets a range of atomic cross
                                          sections instead of just one.
--X <begin> <end> <step> : same as --atomic-xs-range.
+-X <begin> <step> <end> : same as --atomic-xs-range.
 
 --spc-start <start> : sets the lowest energy of the spectrum
 --s <start> : same as --spc-start

@@ -124,8 +124,8 @@ ad_parse_input(){
 			-E | --energy-range )
 				shift
 				begin=$1; shift
-				end=$1; shift
-				step=$1
+				step=$1; shift
+				end=$1
 				energy_range=$(seq -s " " $begin $step $end)
 				;;
 			--en-gamma )
@@ -150,10 +150,10 @@ ad_parse_input(){
 				;;
 			-X | --atomic-xs-range )
 				shift
-				begin=$1; shift
-				end=$1; shift
-				step=$1
-				atomic_xs=$(seq -s " " $begin $step $end)
+				begin=$1; shift;
+				step=$1; shift;
+				end=$1;
+				atomic_xs=$(seq -s " " $begin $step $end);
 				;;
 			--spc-start )
 				shift
@@ -256,6 +256,8 @@ ad_parse_input(){
 #checkingutilities:
 #function "ad_check_a_dir()" checks whether a directory is empty and asks for action
 #function "ad_wait_for_jobs()" waits for processes of a certain name to terminate
+#function "ad_job_control()" keeps in check jobs that may fail, ROOT style (by invoking gdb
+#         and basically stalling the system).
 #function "ad_count_global_jobs()" keeps the job count up to date
 
 #-------------------------------------------------------------------------------------
@@ -328,11 +330,19 @@ ad_job_control(){
 #-------------------------------------------------------------------------------------
 #checks the number of global jobs
 ad_count_global_jobs(){
-	job_count=$#
+	global_job_count=""
+	if [ "$1" == "ad_piped_sim" ]; then
+		gloabl_job_count=0
+		for xs in $atomic_xs; do
+			global_job_count=$(( $job_count + $# -1 ))
+		done
+	else
+		global_job_count=$#
+	fi
 	
-	if [ $NB_JOBS_GLOBAL -ne $job_count ]; then
-		echo "Number of jobs update: were $NB_JOBS_GLOBAL, now are $job_count."
-		NB_JOBS_GLOBAL=$job_count
+	if [ $NB_JOBS_GLOBAL -ne $global_job_count ]; then
+		echo "Number of jobs update: were $NB_JOBS_GLOBAL, now are $global_job_count."
+		NB_JOBS_GLOBAL=$global_job_count
 	fi
 }
 
@@ -621,7 +631,7 @@ ad_run_simulation_P(){
 	#      which is kinda big. A more general version may follow.
 	files_to_process=$( ls $OUTPUT_FILE_DIR/*.root )
 	
-	ad_count_global_jobs $files_to_process
+	ad_count_global_jobs "ad_piped_sim" $files_to_process
 	
 	for a_file in $files_to_process; do
 		for xs in $atomic_xs; do
@@ -675,7 +685,7 @@ ad_run_simulation_MP(){
 	#      which is kinda big. A more general version may follow.
 	files_to_process=$( ls $OUTPUT_FILE_DIR/*.root )
 	
-	ad_count_global_jobs $files_to_process $atomic_xs
+	ad_count_global_jobs "ad_piped_sim" $files_to_process
 	
 	if [ $NB_JOBS_GLOBAL -ge $NB_ONLINE_CPUs ]; then
 		echo "NOTE: using --mux-simulation for more jobs than CPUs is dumb."
