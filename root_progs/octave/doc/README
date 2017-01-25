@@ -1,0 +1,21 @@
+This directory contains the interface to read and write with GNU Octave ASCII events
+meant to be used in the R3B ASCII generator.
+
+It (obviously) requires GNU Octave, installed and reachable.
+In effect, the toolkit in ../ is not necessary for compilation: although the functions
+here take a lot of inspiration from what's in the toolkit, none is directly included.
+
+To compile:
+    $ cd [wherever]/abkg_driver/octave/
+    $ make all -j$( nproc )
+
+To install in GNU Octave, in the xb_progs/octave dir:
+    $ octave --no-gui (or use the GUI prompt to type what follows)
+    > addpath( [pwd, "/oct/"] );
+    > savepath;
+
+Basic usage documentation is provided via Octave's "help <fn>" command.
+For more extensive information about the content of the data structures, please
+refer to the documentaton of the toolkit, found in xb_progs/doc/.
+
+Author: L. Zanetti - IKP - TU Darmstadt. lzanetti@ikp.tu-darmstadt.de
