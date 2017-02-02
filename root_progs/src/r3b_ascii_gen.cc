@@ -56,6 +56,22 @@ r3b_ascii_gen &r3b_ascii_gen::operator=( const r3b_ascii_gen &right ){
 }
 
 //-----------------------------------------------------------------------------------
+//make the ion name
+void r3b_ascii_gen::GetIonName( char *ion_namebuf, unsigned int iA, unsigned int iZ ){
+	if(1 == iZ && 2 == iA) {
+		sprintf(ion_namebuf, "Deuteron");
+	} else if(1 == iZ && 3 == iA) {
+		sprintf(ion_namebuf, "Triton");
+	} else if(2 == iZ && 3 == iA) {
+		sprintf(ion_namebuf, "HE3");
+	} else if (2 == iZ && 4 == iA) {
+		sprintf(ion_namebuf, "Alpha");
+	} else {
+	sprintf( ion_namebuf, "Ion_%u_%u", iA, iZ );
+	}
+}
+
+//-----------------------------------------------------------------------------------
 //slurp data and store them
 unsigned int r3b_ascii_gen::slurp( FILE *input_target ){
 	unsigned int so_many = 0;
@@ -106,9 +122,13 @@ unsigned int r3b_ascii_gen::slurp( FILE *input_target, unsigned int so_many ){
 		
 			//if it's an ion, register it (old registerIon)
 			if( evt.trk[t].iPid < 0 ){
-				if( evt.trk[t].iZ == 1 && evt.trk[t].iA == 2 ) strcpy( ion_namebuf, "Deuteron" );
-				else sprintf( ion_namebuf, "Ion_%hu_%hhu", evt.trk[t].iA, evt.trk[t].iZ );
+				//Get the *proper* ion name (you pillock)
+				r3b_ascii_gen::GetIonName( ion_namebuf,
+				                           evt.trk[t].iA,
+				                           evt.trk[t].iZ );
 				if( fIonMap.find( ion_namebuf ) == fIonMap.end() ){ //new ion, register it
+					if( _verbose ) std::cout << "-I- Registering: " << ion_namebuf << std::endl;
+					
 					fIonMap[ion_namebuf] = 1;
 					_parent_runner->AddNewIon( new FairIon( ion_namebuf,
 					                                        evt.trk[t].iZ,
@@ -167,14 +187,11 @@ Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 	//bloop bon bthe btracks
 	for( int t=0; t < _event_buf.front().nTracks; ++t ){
 		if( _event_buf.front().trk[t].iPid < 0 ){ //ion
-			sprintf( ion_namebuf, "Ion_%d_%d",
-			         _event_buf.front().trk[t].iA,
-			         _event_buf.front().trk[t].iZ );
+			//Get the *proper* ion name (you pillock)
+			r3b_ascii_gen::GetIonName( ion_namebuf,
+			                           _event_buf.front().trk[t].iA,
+			                           _event_buf.front().trk[t].iZ );
 			p_part = fPDG->GetParticle( ion_namebuf );
-			//NOTE: it seems that the naming convention used in R3BAsciiGenerator
-			//      is wrong. Or FairRoot's PDG database doens't know ions.
-			//      Basically: this will _always_ fail, therefore the error message
-			//      is printed to stderr _only_ if verbose is selected.
 			if( p_part == NULL ){
 					if( _verbose ) std::cerr << "-W- R3BAsciiGenerator::ReadEvent: Cannot find "
 					                         << ion_namebuf << " in the PDG database!" << std::endl;

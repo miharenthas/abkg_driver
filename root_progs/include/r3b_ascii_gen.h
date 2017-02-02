@@ -133,6 +133,9 @@ typedef class _r3b_ascii_generator_custom : public FairGenerator
 			fBoxVtxIsSet=kTRUE;
 		};
 
+		//Get the ion name. Because of course it's not just Ion_iA_iZ,
+		//but they have proper names.
+		static void GetIonName( char *ion_namebuf, unsigned int iA, unsigned int iZ );
 	protected: //it looks like this class could be inherited from
 	           //this means that this classifier should be "potected"
 		//private default constructor.
