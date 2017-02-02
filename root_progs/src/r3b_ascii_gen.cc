@@ -148,7 +148,7 @@ unsigned int r3b_ascii_gen::slurp( FILE *input_target, unsigned int so_many ){
 //extraxt the events from the huge buffer
 Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 	char ion_namebuf[32];
-	TParticlePDG* p_part;
+	TParticlePDG *p_part;
 	Int_t pdg_code = 0;
 	
 	if( !_event_buf.size() ){
@@ -170,13 +170,17 @@ Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 			sprintf( ion_namebuf, "Ion_%d_%d",
 			         _event_buf.front().trk[t].iA,
 			         _event_buf.front().trk[t].iZ );
-			if( p_part == NULL ){
-					std::cerr << "-W- R3BAsciiGenerator::ReadEvent: Cannot find "
-					          << ion_namebuf << " in database!" << std::endl;
-						continue;
-			}
 			p_part = fPDG->GetParticle( ion_namebuf );
-			pdg_code = p_part->PdgCode();
+			//NOTE: it seems that the naming convention used in R3BAsciiGenerator
+			//      is wrong. Or FairRoot's PDG database doens't know ions.
+			//      Basically: this will _always_ fail, therefore the error message
+			//      is printed to stderr _only_ if verbose is selected.
+			if( p_part == NULL ){
+					if( _verbose ) std::cerr << "-W- R3BAsciiGenerator::ReadEvent: Cannot find "
+					                         << ion_namebuf << " in the PDG database!" << std::endl;
+					pdg_code = 0;					
+					continue;
+			} else pdg_code = p_part->PdgCode();
 		} else pdg_code = _event_buf.front().trk[t].iA; //not ion (just its mass number)
 		
 		fpg->AddTrack( pdg_code,
