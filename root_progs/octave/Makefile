@@ -7,8 +7,8 @@ SRC = ./src
 OCT = ./oct
 
 #targets, flags and compiler
-OBJECTS = r3bascii_convert.o r3bascii_slurp.o
-OCTS = r3bascii_slurp_compressed_events r3bascii_slurp_events
+OBJECTS = r3bascii_convert.o r3bascii_slurp.o r3bascii_write.o
+OCTS = r3bascii_slurp_compressed_events r3bascii_slurp_events r3bascii_write_compressed_events r3bascii_write_events
 OCTFILES = $(OCT)/r3bascii_slurp_compressed_events.oct $(OCT)/r3bascii_slurp_events.oct
 
 OCTFLAGS = -I"include/"
@@ -28,6 +28,9 @@ r3bascii_convert.o :
 r3bascii_slurp.o :
 	$(CXX) $(CFALGS) $(SRC)/r3bascii_slurp.cc -fPIC -c
 
+r3bascii_write.o :
+	$(C_OCT) $(OCTFLAGS) $(SRC)/r3bascii_write.cc -fPIC -c
+
 #-------------------------------------------------------------------------------------
 #oct files
 
@@ -39,6 +42,13 @@ r3bascii_slurp_events : $(OBJECTS)
 	$(C_OCT) $(OCTFLAGS) $(OBJECTS) $(SRC)/r3bascii_slurp_events.cc -o $(OCT)/r3bascii_slurp_events.oct
 	rm r3bascii_slurp_events.o
 
+r3bascii_write_compressed_events : $(OBJECTS)
+	$(C_OCT) $(OCTFLAGS) $(OBJECTS) $(SRC)/r3bascii_write_compressed_events.cc -o $(OCT)/r3bascii_write_compressed_events.oct
+	rm r3bascii_write_compressed_events.o
+
+r3bascii_write_events : $(OBJECTS)
+	$(C_OCT) $(OCTFLAGS) $(OBJECTS) $(SRC)/r3bascii_write_events.cc -o $(OCT)/r3bascii_write_events.oct
+	rm r3bascii_write_events.o
 
 #-------------------------------------------------------------------------------------
 #phony targets
