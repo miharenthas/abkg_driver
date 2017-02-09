@@ -1,6 +1,8 @@
 //this routine writes events in a r3b ASCII generator friendly manner
 #define O_DOC_STRING "..."
 
+#include <exception>
+
 #include <octave/oct.h>
 #include <octave/oct-map.h>
 
@@ -54,7 +56,12 @@ DEFUN_DLD( r3bascii_write_compressed_events, args, , O_DOC_STRING ){
 	if( out_p == NULL ) error( "File error." );
 
 	//write down the events
-	r3bascii_write( o_tracks, o_evts, out_p );
+	try{
+		r3bascii_write( o_tracks, o_evts, out_p );
+	} catch( std::exception &e ){
+		pclose( out_p );
+		error( "%s", e.what() );
+	}
 	
 	//close the file
 	pclose( out_p );

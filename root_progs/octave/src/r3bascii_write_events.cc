@@ -53,8 +53,13 @@ DEFUN_DLD( r3bascii_write_events, args, , O_DOC_STRING ){
 	if( out_f == NULL ) error( "File error." );
 	
 	//write down the events
-	r3bascii_write( o_tracks, o_evts, out_f );
-	
+	try{
+		r3bascii_write( o_tracks, o_evts, out_f );
+	} catch( std::exception &e ){
+		fclose( out_f );
+		error( "%s", e.what() );
+	}
+
 	//close the file
 	fclose( out_f );
 	
