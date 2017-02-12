@@ -1,5 +1,11 @@
 //this routine writes events in a r3b ASCII generator friendly manner
-#define O_DOC_STRING "..."
+#define O_DOC_STRING "-*- texinfo -*-\n\
+@deftypefn {Function File} r3bascii_write_events( @var{tracks}, @var{events}, @var{filename} )\n\
+A function that writes events and tracks in a format compatible with R3B's ASCII generator. The file is a standard ASCII file.\n\
+\n\
+For more information on the format @var{tracks} and @var{events} must have, please see the documentation of the readere (slurp) funcions.\n\
+@seealso{ r3bascii_slurp_events }\n\
+@end deftypefn"
 
 #include <octave/oct.h>
 #include <octave/oct-map.h>

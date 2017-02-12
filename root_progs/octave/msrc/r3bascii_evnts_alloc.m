@@ -28,6 +28,17 @@ function evnts = r3bascii_evnts_alloc( varargin )
 			
 			if isscalar( varargin{ii+1} )
 				field_presets(idx+1) = varargin{ii+1};
+			elseif iscell( varargin{ii+1} )
+				if length( varargin{ii+1} ) ~= nb_evt
+					error( '# events are mismatched.' );
+				end
+				field_presets{idx+1} = varargin{ii+1};
+			elseif isvector( varargin{ii+1} )
+				if length( varargin{ii+1} ) ~= nb_evt
+					error( '# events are mismatched.' );
+				end
+				field_presets{idx+1} = mat2cell( varargin{ii+1}(:), ...
+				                                 ones( nb_evt, 1 ), 1 );
 			else
 				error( 'Invalid value for a field initialization.' );
 			end
@@ -38,14 +49,38 @@ function evnts = r3bascii_evnts_alloc( varargin )
 
 	%some handy things
 	init_grid = ones( nb_evt, 1 ); %an array of ones long as required
-	tpe = field_presets{4}; %tracks per event
+	if ~iscell( field_presets{4} )
+		tpe = field_presets{4}; %tracks per event
+	else
+		tpe = 0;
+	end
 	
 	%make the fields
-	eventId = mat2cell( [0:nb_evt-1]'.+field_presets{2}, init_grid, 1 );
-	nTracks = mat2cell( field_presets{4}*init_grid, init_grid, 1 );
-	pBeam = mat2cell( field_presets{6}*init_grid, init_grid, 1 );
-	b = mat2cell( field_presets{8}*init_grid, init_grid, 1 );
-	first_track = mat2cell( field_presets{10}*[1:tpe:nb_evt*tpe]', init_grid,1 );
+	if ~iscell( field_presets{2} )
+		eventId = mat2cell( [0:nb_evt-1]'.+field_presets{2}, init_grid, 1 );
+	else
+		eventId = field_presets{2};
+	end
+	if ~iscell( field_presets{4} )
+		nTracks = mat2cell( field_presets{4}*init_grid, init_grid, 1 );
+	else
+		nTracks = field_presets{4};
+	end
+	if ~iscell( field_presets{6} )
+		pBeam = mat2cell( field_presets{6}*init_grid, init_grid, 1 );
+	else
+		pBeam = field_presets{6}
+	end
+	if ~iscell( field_presets{8} )
+		b = mat2cell( field_presets{8}*init_grid, init_grid, 1 );
+	else
+		b = field_presets{8};
+	end
+	if ~iscell( field_presets{10} )
+		first_track = mat2cell( field_presets{10}*[1:tpe:nb_evt*tpe]', init_grid,1 );
+	else
+		first_track = field_presets{10};
+	end
 	
 	%and the structure array
 	evnts = struct( field_presets{1}, eventId, ...
