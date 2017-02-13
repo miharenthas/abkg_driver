@@ -1,13 +1,23 @@
-%this script creates an uniform illumination of photons
-%one photon per event, a number of events specified and
-%a single energy. It also doppler shifts the photons
-%using a data run as a source.
-%TODO: write a proper documentation. For the whole script.
+%-*- texinfo -*-
+%@deftypefn {Script} uniform_photon_illumination()
+%@deftypefnx {Script} uniform_photon_illumination( @var{config_file} )
+%@deftypefnx {Script} uniform_photon_illumination( @var{run_file}, @var{output_file}, @var{nb_events}, @var{energy} )
+%
+%This script generates a uniform, monochromaic single photon illumination, which is also doppler shifted, to be used as R3B ASCII events. The main purpose is to verify that the Crystalball data are processed well.
+%
+%The script can be called without arguments, in which case a prompt is provided to instruct the generation, with a config file or with four arguments representing the file containing the track information for the target run @var{run_file}, the name of the output file @var{output_file}, the number of events @var{nb_events} and the @var{energy} with wich the photons are generated.
+%
+%This script requires the interface provided with the abkg_progs repository -of which this script is part.
+%
+%@seealso{upi_doppler_shift, upi_gen_momenta, upi_input_from_cf, upi_input_from_prompt, upi_parse_cmd}
+%@end deftypefn
 
 %this is basically the program's main.
 function uniform_photon_illumination( varargin )
 	disp( 'Welcome in UPI - uniform photon illumination!' );
-
+	%keep track of the time
+	init_t = time;
+	
 	if ~nargin
 		%input from prompt
 		[run_file, out_file, nb_events, nrg ] = upi_input_from_prompt();
@@ -29,7 +39,7 @@ function uniform_photon_illumination( varargin )
 	printf( ['\trun file: ',run_file,'\n'] );
 	printf( ['\toutput file: ',out_file,'\n'] );
 	printf( ['\t# events: ',num2str(nb_events),'\n'] );
-	printf( ['\tenergy: ',num2str(nrg),'\n\n'] );
+	printf( ['\tenergy (KeV): ',num2str(nrg),'\n\n'] );
 	
 
 	%first job: load the run to get the doppler shift
@@ -39,6 +49,10 @@ function uniform_photon_illumination( varargin )
 	clear run_track_info; %some pointless cleanup
 	printf( ' done.\n' );
 	
+	%timing checkpoint
+	elapsed_t = time - init_t;
+	disp( ['Elapsed time: ',num2str( elapsed_t ),' s.'] );
+	
 	%shuffle beta_0
 	printf( 'Preparing events...' );
 	%tailor beta_0 to the number of events
@@ -46,10 +60,10 @@ function uniform_photon_illumination( varargin )
 		beta_0 = beta_0(1:nb_events);
 	else
 		%duplicate it as many times as necessary
-		while length( beta_zero ) < nb_events
+		while length( beta_0 ) < nb_events
 			beta_0 = [beta_0(:)',beta_0(:)'];
 		end
-		beta_0 = beta_0(1:nb_events)
+		beta_0 = beta_0(1:nb_events);
 	end
 	
 	%and shuffle
@@ -57,25 +71,37 @@ function uniform_photon_illumination( varargin )
 	
 	printf( ' done.\n' );
 	
+	%timing checkpoint
+	elapsed_t = time - init_t;
+	disp( ['Elapsed time: ',num2str( elapsed_t ),' s.'] );
+	
 	%get the photon's momenta
 	printf( 'Generating uniform illumination...' );
 	momenta = upi_gen_momenta( nrg, beta_0, nb_events );
 	
 	%remember that r3broot works in GeV, so a conversion is needed
-	momenta *= 10^-6;
+	momenta *= 1e-6;
 	
 	%make the events and the tracks
 	evts = r3bascii_evnts_alloc( nb_events, 'nTracks', 1 );
-	trks = r3bascii_tracks_alloc( nb_events, 'iPid', 1, 'iZ', 0, 'iA', 22, ...
+	trks = r3bascii_tracks_alloc( nb_events, 'iPid', 1, 'iA', 0, 'iZ', 22, ...
 	                              'px', momenta(1,:), ...
 	                              'py', momenta(2,:), ...
 	                              'pz', momenta(3,:) );
 	printf( ' done.\n' );
 	
+	%timing checkpoint
+	elapsed_t = time - init_t;
+	disp( ['Elapsed time: ',num2str( elapsed_t ),' s.'] );
+	
 	%finally, write the events
 	printf( 'Saving...' );
 	r3bascii_write_compressed_events( trks, evts, out_file );
 	printf( ' done.\n' );
+	
+	%timing checkpoint
+	elapsed_t = time - init_t;
+	disp( ['Elapsed time: ',num2str( elapsed_t ),' s.'] );
 	
 	disp( 'Completed. Goodbye.' );
 end

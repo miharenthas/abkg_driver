@@ -1,4 +1,13 @@
-%A config file reader
+%-*-texinfo-*-
+%@deftypefn {Function file} {[@var{run_file},@var{out_file},@var{nb_events},@var{energy}]} = upi_input_from_cf( @var{config_file} )
+%This function drives the parsing of a config file and returns the four relevant entries to the UPI script.
+%The config file shall be formatted as follows:
+%Everything behing an hash sign will be regarded as a comment and left out.
+%Every line shall contain one single command with its arguments.
+%Valid commands are: run, out, events, energy.
+%The first two expect a string, the second two expect a numeric value.
+%@seealso{ upi_input_from_prompt, upi_parse_cmd }
+%@end deftypefn
 
 function [run_file, out_file, nb_events, nrg ] = upi_input_from_cf( cf_name )
 	%decalre-ish the input variables

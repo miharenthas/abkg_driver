@@ -239,8 +239,8 @@ ad_parse_input(){
 	if [ -z $target_thk ]; then target_thk="1.134"; fi
 	if [ -z "$atomic_xs" ]; then atomic_xs="1.07e5"; fi
 	if [ -z $detector_list ]; then
-		detector_list=":TARGET:LeadTarget:TARGETATMOSPHERE:AtmoVacuum:"
-		detector_list=$detector_list"TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
+		detector_list=":TARGET:LeadTarget:TARGETATMOSPHERE:AtmoVacuum"
+		detector_list=$detector_list":TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
 	fi
 
 	#count the jobs
