@@ -1,4 +1,4 @@
-%-*-texinfo-*-
+%-*- texinfo -*-
 %@deftypefn {Function file} {[@var{run_file},@var{out_file},@var{nb_events},@var{energy}]} = upi_input_from_prompt()
 %This function displays a prompt capable of reading the relevant quantities to UPI: run file, output file, number of events and energy.
 %The command syntax is a) trivial b) the same as required by the config file.

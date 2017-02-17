@@ -1,4 +1,4 @@
-%-*-texinfo-*-
+%-*- texinfo -*-
 %@deftypefn {Function file} {@var{momenta}} = upi_gen_momenta( @var{energy}, @var{beta_0} )
 %This function generates 3-momenta starting from an energy (or an array of them) and an array of beta_0.
 %The momenta will be isotropically distributed on the solid angle.

@@ -1,4 +1,4 @@
-%-*-texinfo-*-
+%-*- texinfo -*-
 %@deftypefn {Function file} {@var{shifted_energies}} = upi_doppler_shift( @var{energy}, @var{beta_0}, @var{inclination} )
 %This function doppler shifts energies of photons.
 %
@@ -12,8 +12,9 @@ function shifted_energies = upi_doppler_shift( nrg, beta_0, inclination )
 	%precalc the sines
 	%NOTE: octave stores phi as the angle from the XY plane
 	%      thus this is correct.
+	gammas = sqrt( 1 - beta_0.^2 ).^-1;
 	sn = sin( inclination );
 
 	%do the shifting
-	shifted_energies = nrg.*sqrt( ( 1 + beta_0.*sn )./( 1 - beta_0.*sn ) );
+	shifted_energies = nrg./( gammas.*( 1 - beta_0.*sn ) );
 end

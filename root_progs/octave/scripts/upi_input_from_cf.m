@@ -1,4 +1,4 @@
-%-*-texinfo-*-
+%-*- texinfo -*-
 %@deftypefn {Function file} {[@var{run_file},@var{out_file},@var{nb_events},@var{energy}]} = upi_input_from_cf( @var{config_file} )
 %This function drives the parsing of a config file and returns the four relevant entries to the UPI script.
 %The config file shall be formatted as follows:

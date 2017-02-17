@@ -1,4 +1,4 @@
-%-*-texinfo-*-
+%-*- texinfo -*-
 %@deftypefn {Function file} {@var{cmd},@var{opts}} = upi_parse_cmd( @var{a_string} )
 %This function parses a string into a command and arguments. everything behind an hash sign is ignored as a comment.
 %@seealso{ upi_input_from_prompt, upi_input_from_cf }
