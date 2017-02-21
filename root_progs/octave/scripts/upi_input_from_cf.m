@@ -56,7 +56,10 @@ function [run_file, out_file, nb_events, nrg ] = upi_input_from_cf( cf_name )
 				if isempty( opts )
 					disp( 'upi: syntax error: energy requires one argument.' );
 				else
-					nrg = str2num( opts{1} );
+					nrg = [];
+					for ii=1:length( opts )
+						nrg = [nrg,str2num( opts{ii} )];
+					end
 				end
 		end
 	end

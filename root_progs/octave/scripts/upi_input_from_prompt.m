@@ -45,7 +45,10 @@ function [run_file, out_file, nb_events, nrg ] = upi_input_from_prompt()
 				if isempty( opts )
 					disp( 'Error: energy requires one argument.' );
 				else
-					nrg = str2num( opts{1} );
+					nrg = [];
+					for ii=1:length( opts )
+						nrg = [nrg,str2num( opts{ii} )];
+					end
 				end
 			case 'done' %exits the prompt
 				get_out = 1;
