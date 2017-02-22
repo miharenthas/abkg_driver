@@ -31,16 +31,20 @@ compression_flag=0 #true if we are dealing with a compressed file
 msim_parse_cmd_line(){
 	#check if $1 is '-F' or '-C', in that case we have an input file, compressed
 	#in the latter case
-	if [ $1 == "-F" ]; then
-		shift
-		INPUT_FILE=$1
-		file_flag=1
-	elif [ $1 == "-C" ]; then
-		shift
-		INPUT_FILE=$1
-		file_flag=1
-		compression_flag=1
-	fi
+	case $1 in
+		-F )
+			shift
+			INPUT_FILE=$1
+			file_flag=1
+			;;
+		-C )
+			shift
+			INPUT_FILE=$1
+			file_flag=1
+			compression_flag=1
+		-h | --help )
+			#display help
+	esac
 	
 	#now comes the name of the program
 	PROGRAM=$1
@@ -62,12 +66,12 @@ msim_parse_cmd_line(){
 	done
 }
 
-#====================================================================================
+#=====================================================================================
 #running the simulation in parallel
 #function "msim_run_sim()" runs the simulation in parallel. It opens the file and then
 #         reads and distributes parts of it to some programs
 
-#------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 #launch all the simulations
 msim_run_sim(){
 	nb_active_jobs=0
@@ -83,7 +87,7 @@ msim_run_sim(){
 		#make the name of the output file
 		current_ofile=$( printf "proc_%02d_" $nb_active_jobs )$OUTPUT_FILE
 		
-		$PROGRAM $current_pipe $CMD" -o "$current_ofile &
+		$PROGRAM $current_pipe $CMD" -o "$current_ofile 1>&2 2>/dev/null &
 		
 		nb_active_jobs=$( pgrep -P $$ -c "$PROGRAM" )
 	done
@@ -111,7 +115,7 @@ msim_run_sim(){
 	rm -f .msim_*
 }
 
-#------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 #do job control (basically copied from abkg_driver, but here is an
 #error catchy waiting instead)
 msim_job_control(){
@@ -128,14 +132,30 @@ msim_job_control(){
 				if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
 					kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
 					
-					echo "WARNING: root process $a_job crashed and was killed. See log for details."
-					echo "         You may have to run this particular job again..."
+					echo "multisim: warning: root process $a_job crashed and was killed. See log for details." >2
+					echo "                   You may have to run this particular job again..." >2
 				fi
 			done
 		fi
 	done
 }
 
-#------------------------------------------------------------------------------------
+#=====================================================================================
+#-------------------------------------------------------------------------------------
 #da main
+#rebuild the positional parametes array and
+#pass it to the function that parses them
+PARAMS=""
+while [ "$1" != "" ]; do
+	PARAMS=$PARAMS" "$1
+	shift
+done
+msim_parse_cmd_line $PARAMS
 
+#run the simulation
+msim_run_sim
+
+#TODO: if the files sum at less than 100GB, merge them with hadd
+#...
+
+#the end.

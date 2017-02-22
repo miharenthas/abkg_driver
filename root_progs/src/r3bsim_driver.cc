@@ -157,7 +157,9 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	if( strstr( det_opts, ":VACVESSELCOOLv13a:" ) ) m["VACVESSELCOOL"] = "vacvessel_v13a.geo.root";
 	if( strstr( det_opts, ":MFI:" ) ) m["MFI"] = "mfi_v13a.geo.root";
 	if( strstr( det_opts, ":PSP:" ) ) m["PSP"] = "psp_v13a.geo.root";
-
+	if( strstr( det_opts, ":RATTLEPLANE:" ) ) m["RATTLEPLANE"] = "no_file_needed";
+	//TODO: add the parsing of the position.
+	
 	return m;
 }	
 
@@ -489,5 +491,12 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 		R3BDetector* lumon = new ELILuMon("LuMon", kTRUE);
 		lumon->SetGeometryFileName( so.fDetlist["LUMON"].c_str() );
 		run->AddModule(lumon);
+	}
+	
+	//The rattleplane
+	if( !so.fDetlist["RATTLEPLANE"].empty() ) {
+		R3BRattlePlane::rp_trf trf = {0, 0, 0, 0, 0, 0};
+		R3BDetector* rattleplane = new R3BRattlePlane( trf, "rattleplane", true );
+		run->AddModule( rattleplane );
 	}
 }
