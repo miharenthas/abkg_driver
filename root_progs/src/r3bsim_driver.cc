@@ -495,8 +495,8 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 	
 	//The rattleplane
 	if( !so.fDetlist["RATTLEPLANE"].empty() ) {
-		R3BRattlePlane::rp_trf trf = {0, 0, 0, 0, 0, 0};
-		R3BDetector* rattleplane = new R3BRattlePlane( trf, "rattleplane", true );
+		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 100, 50, 10};
+		R3BDetector* rattleplane = new R3BRattlePlane( specs, "rattleplane", kTRUE );
 		run->AddModule( rattleplane );
 	}
 }
