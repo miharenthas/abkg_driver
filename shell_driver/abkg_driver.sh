@@ -400,9 +400,9 @@ ad_join_root_files(){
 	done
 	stitched_file=$1
 	
-	if [ $( du -c | grep total | sed "s/total//g" ) -le 103809024 ]; then #if the total expected
-	                                                                      #size is less than 99GiB
-	                                                                      #join, freak out otherwise
+	if [ $( du -c $tmp_files | grep total | sed "s/total//g" ) -le 103809024 ]; then #if the total expected
+	                                                                                 #size is less than 99GiB
+	                                                                                 #join.
 	
 		hadd -v 0 $stitched_file $tmp_files 1>&2 2>/dev/null
 		
