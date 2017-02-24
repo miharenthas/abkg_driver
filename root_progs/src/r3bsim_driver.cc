@@ -157,8 +157,19 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	if( strstr( det_opts, ":VACVESSELCOOLv13a:" ) ) m["VACVESSELCOOL"] = "vacvessel_v13a.geo.root";
 	if( strstr( det_opts, ":MFI:" ) ) m["MFI"] = "mfi_v13a.geo.root";
 	if( strstr( det_opts, ":PSP:" ) ) m["PSP"] = "psp_v13a.geo.root";
-	if( strstr( det_opts, ":RATTLEPLANE:" ) ) m["RATTLEPLANE"] = "no_file_needed";
-	//TODO: add the parsing of the position.
+	
+	//rattleplane section: requires a bit of attention because I'd like to put more
+	//than one in (eventually, not yet implemented)
+	//TODO: implement support for multiple rattleplanes
+	char rp_specbuf[256];
+	const char *p_end, *p_begin;
+	if( strstr( det_opts, ":RATTLEPLANE:" ) ){
+		if( (p_begin = strstr( det_opts, "RattleSpecs" )) != NULL ){
+			p_end = strstr( det_opts, "SpecEnd" );
+			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
+			m["RATTLEPLANE"] = rp_specbuf;
+		} else m["RATTLEPLANE"] = "RattleSpecs[0,0,0,0,0,0,30,30,5]";
+	}
 	
 	return m;
 }	
@@ -495,7 +506,19 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 	
 	//The rattleplane
 	if( !so.fDetlist["RATTLEPLANE"].empty() ) {
-		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 100, 50, 10};
+		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 30, 30, 5};
+		puts( so.fDetlist["RATTLEPLANE"].c_str() );
+		sscanf( so.fDetlist["RATTLEPLANE"].c_str(),
+		        "RattleSpecs[%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf]",
+		        &specs.rot_x,
+		        &specs.rot_y,
+		        &specs.rot_z,
+		        &specs.T_x,
+		        &specs.T_y,
+		        &specs.T_z,
+		        &specs.width,
+		        &specs.height,
+		        &specs.depth );
 		R3BDetector* rattleplane = new R3BRattlePlane( specs, "rattleplane", kTRUE );
 		run->AddModule( rattleplane );
 	}

@@ -28,6 +28,20 @@ NOTE: to keep events as small as possible, the smallest numerical type that guar
 DETECTOR LIST:
 
 As of now, the detector supported are the ones in R3B:
-TARGET, TARGETWHEEL, TARGETSHIELDING, TARGETATMOSPHERE, ALADIN, GLAD, CRYSTALBALL, CALIFAv14a, CALIFAv13_811, TOF, MTOF, DTOF, DHC, TRACKER, STaRTrackv14a, STaRTrackv13a, GFI, LAND, SCINTNEULAND, VACVESSELCOOLv14a, VACVESSELCOOLv13a, MFI, PSP.
+TARGET, TARGETWHEEL, TARGETSHIELDING, TARGETATMOSPHERE, ALADIN, GLAD, CRYSTALBALL, CALIFAv14a, CALIFAv13_811, TOF, MTOF, DTOF, DHC, TRACKER, STaRTrackv14a, STaRTrackv13a, GFI, LAND, SCINTNEULAND, VACVESSELCOOLv14a, VACVESSELCOOLv13a, MFI, PSP, RATTLEPLANE.
 
 The detector list shall be assembled as explained in the help file; whenever a mutiversion detector is specified without its version, the "latest" is automatically selected.
+
+RATTLEPLANE:
+The rattleplane is created on demand, according to the specs passed through the detector list. The format for the specs is:
+	RattleSpecs[<float>,<float>,<float>,<float>,<float>,<float>,<float>,<float>,<float>]SpecEnd
+So NINE floating point numbers, enclosed in square brakets, describing:
+-the rotation around the X axis
+-the rotation around the Y axis
+-the rotation around the Z axis
+-the translation along the X axis
+-the translation along the Y axis
+-the translation along the Z axis
+-the width of the plane
+-the height of the plane
+-the thickness of the plane
