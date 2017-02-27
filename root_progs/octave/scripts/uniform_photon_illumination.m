@@ -68,18 +68,18 @@ function uniform_photon_illumination( varargin )
 	%shuffle beta_0
 	printf( 'Preparing events...' );
 	%tailor beta_0 to the number of events
-	if length( beta_0 ) >= nb_events*nb_lines
-		beta_0 = beta_0(1:nb_events*nb_lines);
+	if length( beta_0 ) >= nb_events
+		beta_0 = beta_0(1:nb_events);
 	else
 		%duplicate it as many times as necessary
-		while length( beta_0 ) < nb_events*nb_lines
+		while length( beta_0 ) < nb_events
 			beta_0 = [beta_0(:)',beta_0(:)'];
 		end
-		beta_0 = beta_0(1:nb_events*nb_lines);
+		beta_0 = beta_0(1:nb_events);
 	end
 	
 	%and shuffle
-	beta_0 = beta_0( randperm( nb_events*nb_lines ) );		
+	beta_0 = beta_0( randperm( nb_events ) );		
 	
 	printf( ' done.\n' );
 	
@@ -89,23 +89,30 @@ function uniform_photon_illumination( varargin )
 	
 	%get the photon's momenta
 	printf( 'Generating uniform illumination...' );
-	momenta = [];
+	momenta = {};
 	for ii=1:nb_lines
-		momenta = [momenta,upi_gen_momenta( nrg(ii), beta_0, nb_events )];
+		%NOTE: the beta_0 is always the same, since shift happens
+		%      eventwise, not trackwise.
+		momenta(ii) = upi_gen_momenta( nrg(ii), beta_0, nb_events );
+		%remember that r3broot works in GeV, so a conversion is needed
+		momenta{ii} *= 1e-6;
 	end
-	%reshuffle the momenta (useful particularly when
-	%having more than one spectral line).
-	momenta = momenta( :, randperm( nb_events*nb_lines ) );
 	
-	%remember that r3broot works in GeV, so a conversion is needed
-	momenta *= 1e-6;
+	%I'll probably want the momenta to be interleaved at this point
+	%Also, it may be a good idea to keep the momenta generated with the same
+	%doppler shift into the same event.
+	mom_evt = zeros( 3, nb_events*nb_lines );
+	for ll=1:nb_lines
+		idx = [ll:nb_lines:nb_events*nb_lines];
+		mom_evt(:,idx) = momenta{ll};
+	end
 	
 	%make the events and the tracks
 	evts = r3bascii_evnts_alloc( nb_events, 'nTracks', nb_lines );
 	trks = r3bascii_tracks_alloc( nb_events*nb_lines, 'iPid', 1, 'iA', 0, 'iZ', 22, ...
-	                              'px', momenta(1,:), ...
-	                              'py', momenta(2,:), ...
-	                              'pz', momenta(3,:) );
+	                              'px', mom_evt(1,:), ...
+	                              'py', mom_evt(2,:), ...
+	                              'pz', mom_evt(3,:) );
 	printf( ' done.\n' );
 	
 	%timing checkpoint

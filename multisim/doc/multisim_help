@@ -1,0 +1,22 @@
+multisim is a shell script that drives a parallel simulation out of a file
+or from standard input. The simulator program is specified in the command line.
+
+Usage: multisim [[-F|-C] a_file][-v] PROGRAM OPTIONS
+
+-F	Specifies an ASCII event file to be fed into PROGRAM
+-C	Specifies a compressed ASCII event file to be fed into PROGRAM
+-v	Causes the script to display verbose output (not implemented yet)
+
+PROGRAM is the simulator program. In theory, it can be everything that
+understands ASCII events in R3BRoot format.
+
+OPTIONS are the options to be passed to the program. Note that multisim
+intercepts -o and --output-file options and uses it to save partial outputs.
+If those partial outputs sum at less than 99GiB, hadd is called and the files
+are joined.
+
+NOTE: this scrips uses "evtmux", which must be reachable.
+NOTE: this script, so far, assumes that the simulator is based on ROOT and
+      therefore hadd is reachable (due to ROOT reachability).
+
+Author: Lorenzo Zanetti, lzanetti@ikp.tu-darmstadt.de
