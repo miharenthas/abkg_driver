@@ -3,3 +3,11 @@
 
 evtmux :
 	gcc -std=c99 evtmux.c -o evtmux
+
+.PHONY : install
+install : evtmux
+	./install.sh
+
+.PHONY : uninstall
+uninstall :
+	./install.sh -u

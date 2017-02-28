@@ -52,7 +52,6 @@ msim_parse_cmd_line(){
 			VERBOSE_FLAG=1
 			shift
 			;;
-			#TODO add a verbose behavior
 	esac
 	
 	#now comes the name of the program
@@ -86,13 +85,14 @@ msim_run_sim(){
 	nb_active_jobs=0
 	
 	if [ $VERBOSE_FLAG -eq 1 ]; then
+			logfile="msim_log_"$( date +%F-%H-%M-%S )
 			echo "Launching: "
 	fi
 	
 	#first thing to do: prepare the execution:
 	#nproc pipes will be created and through those
 	#we're going to feed the simulators.
-	while [ $nb_active_jobs -le $NB_ONLINE_CPUs ]; do
+	while [ $nb_active_jobs -lt $NB_ONLINE_CPUs ]; do
 		#open a (named) pipe (hidden, for aesthetics)
 		current_pipe=$( printf ".msim_%02d" $nb_active_jobs )
 		if ! [ -p $current_pipe ]; then mkfifo $current_pipe; fi
@@ -103,7 +103,6 @@ msim_run_sim(){
 		if [ $VERBOSE_FLAG -eq 0 ]; then
 			$PROGRAM $current_pipe $CMD -o $current_ofile 2>/dev/null 1>&2 &
 		elif [ $VERBOSE_FLAG -eq 1 ]; then
-			logfile="msim_log_"$( date +%F-%H-%M-%S )
 			$PROGRAM $current_pipe $CMD -o $current_ofile 2>>$logfile 1>&2 &
 			echo -e "\t"$PROGRAM $current_pipe $CMD -o $current_ofile
 		fi
@@ -115,13 +114,13 @@ msim_run_sim(){
 	if ! [ -p ".msim_src" ]; then mkfifo .msim_src; fi
 	if [ $file_flag -eq 1 ]; then
 		if [ $compression_flag -eq 1 ]; then
-			./evtmux .msim_src .msim_??
+			evtmux .msim_src .msim_??
 			bzcat $INPUT_FILE > .msim_src
 		else
-			./evtmux $INPUT_FILE .msim_??
+			evtmux $INPUT_FILE .msim_??
 		fi
 	else
-		./evtmux -- .msim_??
+		evtmux -- .msim_??
 	fi
 	
 	#do job control
