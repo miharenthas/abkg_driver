@@ -135,8 +135,16 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 		if( strstr( det_opts, "AtmoVacuum" ) ) m["TARGETATMOSPHERE"] = "vacuum";
 		if( strstr( det_opts, "AtmoAir" ) ) m["TARGETATMOSPHERE"] = "air";
 	}
-	if( strstr( det_opts, ":ALADIN:" ) ) m["ALADIN"] = "aladin_v13a.geo.root";
-	if( strstr( det_opts, ":GLAD:" ) ) m["GLAD"] = "glad_v13a.geo.root";
+	if( strstr( det_opts, ":ALADIN:" ) ){
+		m["ALADIN"] = "aladin_v13a.geo.root";
+		m["ALAFIELD"] = "alafield";
+	}
+	if( strstr( det_opts, ":ALAFIELD:" ) ) m["ALAFIELD"] = "alafield";
+	if( strstr( det_opts, ":GLAD:" ) ){
+		m["GLAD"] = "glad_v13a.geo.root";
+		m["GLAFIELD"] = "glafield";
+	}
+	if( strstr( det_opts, ":GLAFIELD:" ) ) m["GLAFIELD"] = "glafield";
 	if( strstr( det_opts, ":CRYSTALBALL:" ) ) m["CRYSTALBALL"] = "cal_v13a.geo.root";
 	if( strstr( det_opts, ":CALIFAv14a:" ) ||
 	    strstr( det_opts, ":CALIFA:" ) ) m["CALIFA"] = "califa_v14a.geo.root";
@@ -161,14 +169,14 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	//rattleplane section: requires a bit of attention because I'd like to put more
 	//than one in (eventually, not yet implemented)
 	//TODO: implement support for multiple rattleplanes
-	char rp_specbuf[256];
+	char rp_specbuf[1024];
 	const char *p_end, *p_begin;
 	if( strstr( det_opts, ":RATTLEPLANE:" ) ){
 		if( (p_begin = strstr( det_opts, "RattleSpecs" )) != NULL ){
 			p_end = strstr( det_opts, "SpecEnd" );
 			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
 			m["RATTLEPLANE"] = rp_specbuf;
-		} else m["RATTLEPLANE"] = "RattleSpecs[0,0,0,0,0,0,30,30,5]";
+		} else m["RATTLEPLANE"] = "RattleSpecs+[0,0,0,0,0,0,30,30,5,G]";
 	}
 	
 	return m;
@@ -246,8 +254,8 @@ float r3bsim_driver( r3bsim_opts &so ){
 	//-------------------------------------------------
 	//save the parameter file
 	R3BFieldPar* fieldPar = (R3BFieldPar*) rtdb->getContainer("R3BFieldPar");
-	if( !so.fDetlist["ALADIN"].empty() 
-	    || !so.fDetlist["GLAD"].empty() )
+	if( !so.fDetlist["ALAFIELD"].empty() 
+	    || !so.fDetlist["GLAFIELD"].empty() )
 	{
 		fieldPar->SetParameters( magField );
 		fieldPar->setChanged();
@@ -297,7 +305,7 @@ FairField *r3bsim_magmant( FairRunSim *run, r3bsim_opts &so ){
 	// If the Global Position of the Magnet is changed
 	// the Field Map has to be transformed accordingly
 	FairField *magField = NULL;
-	if ( !so.fDetlist["ALADIN"].empty() ) {
+	if ( !so.fDetlist["ALAFIELD"].empty() ) {
 		magField = new R3BAladinFieldMap( "AladinMaps" );
 		((R3BAladinFieldMap*)magField)->SetCurrent( so.fMeasCurrent );
 		((R3BAladinFieldMap*)magField)->SetScale( fieldScale );
@@ -307,7 +315,7 @@ FairField *r3bsim_magmant( FairRunSim *run, r3bsim_opts &so ){
 		} else {
 			run->SetField( NULL );
 		}
-	} else if( !so.fDetlist["GLAD"].empty() ){
+	} else if( !so.fDetlist["GLAFIELD"].empty() ){
 		magField = new R3BGladFieldMap( "R3BGladMap" );
 		((R3BGladFieldMap*)magField)->SetPosition( 0., 0., +350-119.94 );
 		((R3BGladFieldMap*)magField)->SetScale( fieldScale );
@@ -506,20 +514,40 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 	
 	//The rattleplane
 	if( !so.fDetlist["RATTLEPLANE"].empty() ) {
-		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 30, 30, 5};
-		puts( so.fDetlist["RATTLEPLANE"].c_str() );
-		sscanf( so.fDetlist["RATTLEPLANE"].c_str(),
-		        "RattleSpecs[%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf]",
-		        &specs.rot_x,
-		        &specs.rot_y,
-		        &specs.rot_z,
-		        &specs.T_x,
-		        &specs.T_y,
-		        &specs.T_z,
-		        &specs.width,
-		        &specs.height,
-		        &specs.depth );
-		R3BDetector* rattleplane = new R3BRattlePlane( specs, "rattleplane", kTRUE );
-		run->AddModule( rattleplane );
+		//seed a random sequence,
+		//useful for unique name generation.
+		R3BRattlePlane::seed_unique_namer();
+		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 30, 30, 5,
+		                                  (R3BTAM_switcher)L'G'};
+		char rattlespecs[1024];
+		strcpy( rattlespecs, so.fDetlist["RATTLEPLANE"].c_str() );
+		char *spc_tok = strtok( rattlespecs, "+" ); //pre-load:
+		                                            //note that now spc_tok is "RattleSpecs"
+		char rattlename[64];
+		R3BRattlePlane *rattleplane;
+		
+		//instantiate as many rattleplanes as found in the specifications
+		//and name them uniquely with the tool in the class.
+		while( spc_tok != NULL ){
+			spc_tok = strtok( NULL, "+" );
+			if( spc_tok == NULL ) break; //leave if there aren't any specs
+			sscanf( spc_tok,
+				"[%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lc]",
+				&specs.rot_x,
+				&specs.rot_y,
+				&specs.rot_z,
+				&specs.T_x,
+				&specs.T_y,
+				&specs.T_z,
+				&specs.width,
+				&specs.height,
+				&specs.depth,
+				&specs.stuff ); //it's a wide character...
+
+			strcpy( rattlename, "rattleplane_" );
+			R3BRattlePlane::mk_unique_name( rattlename );
+			rattleplane = new R3BRattlePlane( specs, rattlename, kTRUE );
+			run->AddModule( rattleplane );
+		}
 	}
 }

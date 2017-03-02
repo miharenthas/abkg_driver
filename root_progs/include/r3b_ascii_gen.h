@@ -26,6 +26,10 @@
 #ifndef R3B_ASCII_GEN_H
 #define R3B_ASCII_GEN_H
 
+//includes from this toolkit
+//#include "r3b_ascii_paged_queue.h" //a queue-like structure that pages itself to disk
+#include "r3b_ascii_event_structs.h" //the track and event data structures.
+
 //inclusions, all of them.
 #include "FairGenerator.h"
 #include "FairPrimaryGenerator.h"
@@ -47,44 +51,6 @@
 class TDatabasePDG;
 class FairPrimaryGenerator;
 class FairIon;
-
-//------------------------------------------------------------------------------------
-//a couple of data structures to hold the event data
-//NOTE: the numerical types here have been chosen to be as tight as possible
-//      this is because we want to handle as many entries as possible
-//      with as little memory as possible.
-//      Since if not specified with precision statements (which are very
-//      rarely found) the length of a float is used, that numerical type
-//      should guarantee the best precision (and more speed)
-//NOTE: unsigned char ranges from 0 to 255, more than enough for Z number
-//      unsigned short int ranges from 0 to 65535, well beyond anything
-//      circulating in the known universe as a "nucleus". If you've got tiny neutron
-//      stars hanging around your accelerator, you should really give me a call.
-
-//the track data
-typedef struct _r3b_ascii_generator_custom_track{
-	Int_t iPid; //..., 4B*nTracks(?)
-	unsigned short int iA; //max mass number 2^16-1, 2B
-	unsigned char iZ; //max charge 255, 1B
-	float px, py, pz; //single precision, 4B*3
-	float vx, vy, vz; //single precision, 4B*3
-	float iMass; //single precision, 4B
-} r3b_ascii_track;
-//Total: 35B per track
-
-//the event structure
-typedef struct _r3b_ascii_generator_custom_event{
-	// Define event variable to be read from file
-	unsigned int eventId; //max 2^32-1 events supported; 4B
-	unsigned short int nTracks; //max 2^16-1 tracks per event supported; 2B
-	float pBeam; //single precision, 4B
-	float b; //single precision, 4B
-
-	//and a vector holding the track
-	std::vector<r3b_ascii_track> trk; //the track data, 35B*nTraks + 24B
-} r3b_ascii_event;
-//Memory needed for each event: 14+35*nTracks+24 B
-//for a 32 track event: 1158B --> each GiB of memory will hold 927238 32track events.
 
 //------------------------------------------------------------------------------------
 //the class itself
