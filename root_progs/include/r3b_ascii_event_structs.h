@@ -54,7 +54,7 @@ typedef struct _r3b_ascii_generator_custom_event{
 void *r3b_ascii_event_getbuf( const r3b_ascii_event &event );
 void *r3b_ascii_track_getbuf( const r3b_ascii_track &track );
 
-r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf )
+r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf );
 r3b_ascii_track r3b_ascii_track_setbuf( const void *track_buf );
 
 #endif

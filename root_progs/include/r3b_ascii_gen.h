@@ -27,7 +27,7 @@
 #define R3B_ASCII_GEN_H
 
 //includes from this toolkit
-#include "r3b_ascii_paged_queue.h" //a queue-like structure that pages itself to disk
+//#include "r3b_ascii_paged_queue.h" //a queue-like structure that pages itself to disk
 #include "r3b_ascii_event_structs.h" //the track and event data structures.
 
 //inclusions, all of them.

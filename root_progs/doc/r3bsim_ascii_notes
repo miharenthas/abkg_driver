@@ -28,14 +28,18 @@ NOTE: to keep events as small as possible, the smallest numerical type that guar
 DETECTOR LIST:
 
 As of now, the detector supported are the ones in R3B:
-TARGET, TARGETWHEEL, TARGETSHIELDING, TARGETATMOSPHERE, ALADIN, GLAD, CRYSTALBALL, CALIFAv14a, CALIFAv13_811, TOF, MTOF, DTOF, DHC, TRACKER, STaRTrackv14a, STaRTrackv13a, GFI, LAND, SCINTNEULAND, VACVESSELCOOLv14a, VACVESSELCOOLv13a, MFI, PSP, RATTLEPLANE.
+TARGET, TARGETWHEEL, TARGETSHIELDING, TARGETATMOSPHERE, ALADIN, ALAFIELD, GLAD, GLAFIELD, CRYSTALBALL, CALIFAv14a, CALIFAv13_811, TOF, MTOF, DTOF, DHC, TRACKER, STaRTrackv14a, STaRTrackv13a, GFI, LAND, SCINTNEULAND, VACVESSELCOOLv14a, VACVESSELCOOLv13a, MFI, PSP, RATTLEPLANE.
+
+Note that the magnet's bulk and their field are separate entities: xFIELD will only create the field of the magnet x, while the name of the magnet will create both.
 
 The detector list shall be assembled as explained in the help file; whenever a mutiversion detector is specified without its version, the "latest" is automatically selected.
 
 RATTLEPLANE:
 The rattleplane is created on demand, according to the specs passed through the detector list. The format for the specs is:
-	RattleSpecs[<float>,<float>,<float>,<float>,<float>,<float>,<float>,<float>,<float>]SpecEnd
-So NINE floating point numbers, enclosed in square brakets, describing:
+
+RattleSpecs+[<float>,<float>,<float>,<float>,<float>,<float>,<float>,<float>,<float>,<char>]+[...]+...SpecEnd
+
+So TEN floating point numbers, enclosed in square brakets, describing:
 -the rotation around the X axis
 -the rotation around the Y axis
 -the rotation around the Z axis
@@ -45,3 +49,14 @@ So NINE floating point numbers, enclosed in square brakets, describing:
 -the width of the plane
 -the height of the plane
 -the thickness of the plane
+-the material to build with:
+	A -- air
+	B -- vaccum
+	C -- silicon
+	D -- copper
+	E -- aluminium
+	F -- iron
+	G -- lead (this is the default)
+
+It is possible to insert as many rattleplanes as needed (in principle, the rattlespec is 1024 characters long). The specs are enclosed in square brackets and they are separated by a PLUS SIGN "+".
+Note that a plus sign also follows the RattleSpecs keyword!
