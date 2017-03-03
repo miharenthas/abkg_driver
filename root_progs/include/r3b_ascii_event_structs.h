@@ -4,6 +4,9 @@
 #ifndef R3B_ASCII_EVENT_STRUCTS__H
 #define R3B_ASCII_EVENT_STRUCTS__H
 
+#define R3B_ASCII_EVENTINFO_SIZE sizeof(r3b_ascii_event) - sizeof(std::vector<r3b_ascii_event>)
+#define R3B_ASCII_TRACK_BUFSIZE sizeof(r3b_ascii_track) + 1;
+
 #include <vector>
 #include <stdlib.h> //for malloc & co.
 #include <string.h> //memcpy & co.
@@ -56,5 +59,9 @@ void *r3b_ascii_track_getbuf( const r3b_ascii_track &track );
 
 r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf );
 r3b_ascii_track r3b_ascii_track_setbuf( const void *track_buf );
+
+//and here a tool for getting the buffer size
+unsigned int r3b_ascii_event_bufsize( const r3b_ascii_event &event );
+unsigned int r3b_ascii_event_bufsize( const void *event_buf );
 
 #endif
