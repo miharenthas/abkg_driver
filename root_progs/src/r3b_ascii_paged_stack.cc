@@ -54,6 +54,8 @@ unsigned int r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
 	if( _memory_sz > _own_page_size ){
 		swap_buffers(); //swap the buffers
 	}
+	
+	return _front_buf->size();
 }
 
 //------------------------------------------------------------------------------------
