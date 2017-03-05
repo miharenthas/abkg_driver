@@ -80,6 +80,14 @@ r3b_ascii_event r3b_ascii_paged_stack::pop(){
 }
 
 //------------------------------------------------------------------------------------
+//top: just look on top of the stack
+r3b_ascii_event r3b_ascii_paged_stack::top(){
+	if( _front_buf->empty() ) swap_buffers();
+	if( !_front_buf->empty() ) return _front_buf->front();
+	else{ r3b_ascii_event evt; return evt; }
+}
+
+//------------------------------------------------------------------------------------
 //alloc and free for the a_page structure.
 r3b_pstack::a_page *r3b_ascii_paged_stack::a_page_alloc( FILE *file,
                                                          std::deque<r3b_ascii_event> *bb ){

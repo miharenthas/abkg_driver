@@ -35,6 +35,8 @@ typedef class r3b_ascii_paged_stack {
 		//pop: returns a brand new event structure
 		//     taking it from the beginning of the stack. 
 		r3b_ascii_event pop();
+		//top: just look on top of the stack
+		r3b_ascii_event top();
 		//check for emptiness:
 		//front buf and pages must be empty
 		inline bool empty(){ return _front_buf->empty() && _pages.empty(); };
