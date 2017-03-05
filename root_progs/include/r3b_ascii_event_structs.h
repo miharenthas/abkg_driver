@@ -5,11 +5,12 @@
 #define R3B_ASCII_EVENT_STRUCTS__H
 
 #define R3B_ASCII_EVENTINFO_SIZE sizeof(r3b_ascii_event) - sizeof(std::vector<r3b_ascii_event>)
-#define R3B_ASCII_TRACK_BUFSIZE sizeof(r3b_ascii_track) + 1;
+#define R3B_ASCII_TRACK_BUFSIZE sizeof(r3b_ascii_track) + 1
 
 #include <vector>
 #include <stdlib.h> //for malloc & co.
 #include <string.h> //memcpy & co.
+#include <stdio.h> //fprintf, stderr
 
 //------------------------------------------------------------------------------------
 //a couple of data structures to hold the event data

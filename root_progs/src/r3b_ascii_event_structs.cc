@@ -6,11 +6,12 @@
 //This function basically linearizes and then returns a long buffer with the event
 //and tracks in it
 void *r3b_ascii_event_getbuf( const r3b_ascii_event &event ){
-	r3b_ascii_track *t_begin = event.trk.begin(); //pointer to the begin of the vector
-	r3b_ascii_track *t_end = event.trk.end(); //past the end pointer (iterator)
+	const r3b_ascii_track *t_begin = &*event.trk.begin(); //pointer to the begin of the vector
+	const r3b_ascii_track *t_end = &*event.trk.end(); //past the end pointer (iterator)
 
 	//calculate the size the buffer has to be
-	unsigned int buf_size, const evt_info_sz = R3B_ASCII_EVENTINFO_SIZE;
+	unsigned int buf_size;
+	const unsigned int evt_info_sz = R3B_ASCII_EVENTINFO_SIZE;
 	buf_size = r3b_ascii_event_bufsize( event );
 	
 	//make the buffer, properly zeroed
@@ -50,13 +51,13 @@ r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf ){
 	event_buf = (char*)event_buf+1;
 	
 	//the second entry is our target, set a reference to that
-	unsigned int &n_trk = *(unsigned short int*)((unsigned int*)event_buf+1));
+	short unsigned int &n_trk = *(unsigned short int*)((unsigned int*)event_buf+1);
 	const unsigned int evt_info_sz = R3B_ASCII_EVENTINFO_SIZE;
 	
 	//make the event
 	r3b_ascii_event event = { 0, 0, 0, 0, std::vector<r3b_ascii_track>( n_trk ) };
-	memcpy( &event.eventId, buf, evt_info_sz );
-	memcpy( event.trk.begin(), (char*)buf + evt_info_sz, n_trk*sizeof(r3b_ascii_track) );
+	memcpy( &event.eventId, event_buf, evt_info_sz );
+	memcpy( &*event.trk.begin(), (char*)event_buf + evt_info_sz, n_trk*sizeof(r3b_ascii_track) );
 	
 	return event;
 }
@@ -84,8 +85,8 @@ unsigned int r3b_ascii_event_bufsize( const r3b_ascii_event &event ){
 //NOTE: this actually only requires the first bit of the buffer, since
 //      the size of one track is constant.
 unsigned int r3b_ascii_event_bufsize( const void *event_buf ){
-	(char*)event_buf += 1;
-	unsigned int &n_trk = *(unsigned short int*)((unsigned int*)event_buf+1));
+	event_buf = (char*)event_buf + 1;
+	short unsigned int &n_trk = *(unsigned short int*)((unsigned int*)event_buf+1);
 
 	return R3B_ASCII_EVENTINFO_SIZE + n_trk*sizeof(r3b_ascii_track) + 1;
 }
