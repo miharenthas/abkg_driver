@@ -49,7 +49,7 @@ void *r3b_ascii_track_getbuf( const r3b_ascii_track &track ){
 r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf ){
 	//TODO: come up with a better error handling than this!
 	if( *(char*)event_buf != 'E' ){
-		fprintf( stderr, "Event buffer expected, something else given." );
+		fprintf( stderr, "Event buffer expected, something else given.\n" );
 		exit( 10 );
 	}
 	
@@ -75,7 +75,7 @@ r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf ){
 //This considerably less clever function creates a track from a buffer
 r3b_ascii_track r3b_ascii_track_setbuf( const void *track_buf ){
 	if( *(char*)track_buf != 'T' ){
-		fprintf( stderr, "Event buffer expected, something else given." );
+		fprintf( stderr, "Track buffer expected, something else given.\n" );
 		exit( 11 );
 	}
 	

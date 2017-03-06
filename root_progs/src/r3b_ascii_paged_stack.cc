@@ -4,7 +4,7 @@
 
 //------------------------------------------------------------------------------------
 //init the page size variable
-unsigned int page_size = DEFAULT_PAGE_SIZE;
+long unsigned int r3b_pstack::page_size = DEFAULT_PAGE_SIZE;
 
 //------------------------------------------------------------------------------------
 //ctors, dtor:
@@ -15,11 +15,15 @@ r3b_ascii_paged_stack::r3b_ascii_paged_stack():
 	_own_page_sz( r3b_ascii_paged_stack::page_size ),
 	_front_buf( new std::deque<r3b_ascii_event> ),
 	_back_buf( new std::deque<r3b_ascii_event> ),
-	_memory_sz( 0 )
+	_memory_sz( 0 ),
+	_op_busy( false )
 {
 	pthread_attr_init( &_op_attr );
 	pthread_attr_setdetachstate( &_op_attr, PTHREAD_CREATE_JOINABLE );
-	pthread_mutexattr_init( &_memory_sz_mutexattr );
+	pthread_mutexattr_init( &_mem_sz_mutexattr );
+	pthread_mutex_init( &_mem_sz_mutex, &_mem_sz_mutexattr );
+	
+	pthread_create( &_disk_op_thread, &_op_attr, page_out, NULL );
 };
 
 //------------------------------------------------------------------------------------
@@ -35,7 +39,8 @@ r3b_ascii_paged_stack::~r3b_ascii_paged_stack(){
 	
 	//cleanup the attributes
 	pthread_attr_destroy( &_op_attr );
-	pthread_mutexattr_destroy( &_memory_sz_mutexattr );
+	pthread_mutex_destroy( &_mem_sz_mutex );
+	pthread_mutexattr_destroy( &_mem_sz_mutexattr );
 }
 
 //------------------------------------------------------------------------------------
@@ -47,11 +52,11 @@ unsigned int r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
 	_front_buf->push_back( given );
 	
 	//update the memory size
-	pthread_mutex_lock( &_memory_sz_mutex );
+	pthread_mutex_lock( &_mem_sz_mutex );
 	_memory_sz += sizeof(r3b_ascii_event)+given.nTracks*sizeof(r3b_ascii_track);
-	pthread_mutex_unlock( &_memory_sz_mutex );
+	pthread_mutex_unlock( &_mem_sz_mutex );
 	
-	if( _memory_sz > _own_page_sz ){
+	if( _memory_sz > (( _op_busy )? 2*_own_page_sz : _own_page_sz) ){
 		swap_buffers(); //swap the buffers
 	}
 	
@@ -72,9 +77,9 @@ r3b_ascii_event r3b_ascii_paged_stack::pop(){
 	} else { /*eventually, throw something;*/ }
 	
 	//update the memory size
-	pthread_mutex_lock( &_memory_sz_mutex );
+	pthread_mutex_lock( &_mem_sz_mutex );
 	_memory_sz -= sizeof(r3b_ascii_event)+evt.nTracks*sizeof(r3b_ascii_track);
-	pthread_mutex_unlock( &_memory_sz_mutex );
+	pthread_mutex_unlock( &_mem_sz_mutex );
 	
 	return evt;
 }
@@ -120,6 +125,7 @@ void r3b_ascii_paged_stack::swap_buffers(){
 	//3) the front buffer is empty AND the back buffer is empty
 	//4) the front buffer is full AND the back buffer is full
 	//the last two case aren't very fortunate, because they need a blocking call.
+	int pt_rc;
 	if( _front_buf->empty() && !_back_buf->empty() ){
 		//then the back buffer is full
 		std::swap( _front_buf, _back_buf );
@@ -127,10 +133,14 @@ void r3b_ascii_paged_stack::swap_buffers(){
 		//now, fill the back buffer:
 		if( _pages.empty() ) return; //we have no files to load.
 		a_file = a_page_alloc( _pages.top(), _back_buf ); 
-		pthread_create( &_disk_op_thread,
-		                &_op_attr,
-		                page_in,
-		                (void*)a_file );
+		pt_rc = pthread_create( &_disk_op_thread,
+		                        &_op_attr,
+		                        page_in,
+		                        (void*)a_file );
+		if( pt_rc ){
+			fprintf( stderr, "r3b_pstack: error: can't create the disk operator.\n" );
+			exit( 10 );
+		}
 		//NOTE: in order to guarantee that the file is not
 		//      closed while operations are in progress,
 		//      page_in() will handle this sort of things.
@@ -143,11 +153,14 @@ void r3b_ascii_paged_stack::swap_buffers(){
 		
 		//page out the back buffer, now full
 		a_file = a_page_alloc( tmpfile(), _back_buf );
-		pthread_create( &_disk_op_thread,
-		                &_op_attr,
-		                page_out,
-		                (void*)a_file );
-		
+		pt_rc = pthread_create( &_disk_op_thread,
+		                        &_op_attr,
+		                        page_out,
+		                        (void*)a_file );
+		if( pt_rc ){
+			fprintf( stderr,"r3b_pstack: error: can't create the disk operator.\n" );
+			exit( 10 );
+		}
 		//save the new page
 		_pages.push( a_file->file );
 	} else if( _front_buf->empty() && _back_buf->empty() ){
@@ -170,16 +183,23 @@ void r3b_ascii_paged_stack::swap_buffers(){
 
 		std::swap( _front_buf, _back_buf );
 	}
-	
-	a_page_free( a_file ); //a thing dies where it's born.
 }
 
 //------------------------------------------------------------------------------------
 //a method to save to disk what's in the back buffer now.
 //it's a voidfest to make is thread-friendly
 void *r3b_ascii_paged_stack::page_out( void *a_file ){
+	if( a_file == NULL ) return NULL; //return null on empty job
+
 	//first, retrieve the arguments
-	a_page the_page = *(a_page*)a_file; //copy, safer
+	a_page the_page = *(a_page*)a_file;
+	the_page.caller->_op_busy = true;
+
+	//check on the file
+	if( the_page.file == NULL ){
+		fprintf( stderr, "r3b_pstack: error: a temp file wasn't opened.\n" );
+		exit( 1 );
+	}
 	
 	//calculate the size the buffer has to be
 	unsigned int buf_size;
@@ -191,25 +211,34 @@ void *r3b_ascii_paged_stack::page_out( void *a_file ){
 		//retrieve the event and calc the buffer size.
 		current_evt = &the_page.bb->front();
 		buf_size = r3b_ascii_event_bufsize( *current_evt );
-		
+
 		//linearize the event in the buffer
 		buf = r3b_ascii_event_getbuf( *current_evt );
-		
+		if( !buf ){
+			fprintf( stderr, "r3b_pstak: error: run out of memory?\n" );
+			exit( 2 );
+		}
+
 		//save it
 		fwrite( buf, buf_size, 1, the_page.file );
-		
+
 		//and now, pop it and cleanup
 		the_page.bb->pop_front();
 		free( buf );
 		
 		//update the memory size
-		pthread_mutex_lock( &the_page.caller->_memory_sz_mutex );
+		pthread_mutex_lock( &the_page.caller->_mem_sz_mutex );
 		the_page.caller->_memory_sz -= sizeof(r3b_ascii_event) +
 		                               current_evt->nTracks*sizeof(r3b_ascii_track);
-		pthread_mutex_unlock( &the_page.caller->_memory_sz_mutex );
+		                               printf( "\b7" );
+		pthread_mutex_unlock( &the_page.caller->_mem_sz_mutex );
 	}
 	
 	//terminate
+	the_page.bb->clear(); //make sure it's empty
+	the_page.caller->_op_busy = false;
+	the_page.caller->a_page_free( (a_page*)a_file );
+	
 	return NULL;
 }
 
@@ -217,8 +246,11 @@ void *r3b_ascii_paged_stack::page_out( void *a_file ){
 //and this is a method to load a temporary file into a buffer
 //again, thread-friendly
 void *r3b_ascii_paged_stack::page_in( void *a_file ){
+	if( a_file == NULL ) return NULL; //return null on empty job
+	
 	//first, retrieve the arguments
 	a_page the_page = *(a_page*)a_file; //copy, safer
+	the_page.caller->_op_busy = true;
 	
 	//calculate the size the buffer has to be
 	unsigned int buf_size;
@@ -226,19 +258,33 @@ void *r3b_ascii_paged_stack::page_in( void *a_file ){
 	
 	r3b_ascii_event current_evt;
 	void *buf, *track_buf;
+	rewind( the_page.file ); //for good measure
 	while( !feof( the_page.file ) ){
 		//prepare the buffer for the event header, and read it
 		buf = malloc( evt_info_sz );
-		fread( buf, evt_info_sz, 1, the_page.file );
-
+		if( !buf ){
+			fprintf( stderr, "r3b_pstak: error: run out of memory?\n" );
+			exit( 2 );
+		}
+		fread( buf, evt_info_sz+1, 1, the_page.file );
+		if( feof( the_page.file ) ) break; //check again, please
+		                                   //NOTE: this is necessary because
+		                                   //      we're reading precisely, so
+		                                   //      we finish the file but we don't
+		                                   //      set the FEOF immediately.
+		
 		//from there, we can get the information about
 		//how big the whole buffer has to be
 		buf_size = r3b_ascii_event_bufsize( buf );
 		buf = realloc( buf, buf_size );
-		track_buf = (char*)buf + evt_info_sz; //handy pointer to the tracks
+		if( !buf ){
+			fprintf( stderr, "r3b_pstak: error: run out of memory?\n" );
+			exit( 2 );
+		}
+		track_buf = (char*)buf + evt_info_sz + 1; //handy pointer to the tracks
 
 		//now read the tracks
-		fread( track_buf, buf_size - evt_info_sz, 1, the_page.file );
+		fread( track_buf, buf_size - evt_info_sz - 1, 1, the_page.file );
 
 		//make the event
 		current_evt = r3b_ascii_event_setbuf( buf );
@@ -248,11 +294,10 @@ void *r3b_ascii_paged_stack::page_in( void *a_file ){
 		the_page.bb->push_back( current_evt );
 
 		//update the memory size
-		pthread_mutex_lock( &the_page.caller->_memory_sz_mutex );
+		pthread_mutex_lock( &the_page.caller->_mem_sz_mutex );
 		the_page.caller->_memory_sz += sizeof(r3b_ascii_event) +
 		                               current_evt.nTracks*sizeof(r3b_ascii_track);
-		pthread_mutex_unlock( &the_page.caller->_memory_sz_mutex );
-		
+		pthread_mutex_unlock( &the_page.caller->_mem_sz_mutex );
 	}
 	
 	//now we are finished loading this particular file and can be closed
@@ -261,6 +306,9 @@ void *r3b_ascii_paged_stack::page_in( void *a_file ){
 	fclose( the_page.file );
 	
 	//terminate
+	the_page.caller->_op_busy = false;
+	the_page.caller->a_page_free( (a_page*)a_file );
+	
 	return NULL;
 }
 	 

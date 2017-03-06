@@ -41,9 +41,10 @@ typedef class r3b_ascii_paged_stack {
 		//front buf and pages must be empty
 		inline bool empty(){ return _front_buf->empty() && _pages.empty(); };
 		
-		//check the page size.
+		//check the paging status
 		inline unsigned int own_page_size(){ return _own_page_sz; };
 		inline unsigned int size_in_memory(){ return _memory_sz; };
+		inline unsigned int nb_pages(){ return _pages.size(); };
 		
 		//a static that defines the current page size.
 		//I'm doing it like this because it's unlikely to change
@@ -52,7 +53,7 @@ typedef class r3b_ascii_paged_stack {
 		//Note that a copy of this variable is made every time
 		//a stack is created, and for that stack the size remains
 		//constant.
-		static unsigned int page_size; //it is initialized as DEFAULT_PAGE_SIZE
+		static long unsigned int page_size; //it is initialized as DEFAULT_PAGE_SIZE
 	protected:
 		//a handy data structure
 		//declared protected: no need for the rest
@@ -77,11 +78,12 @@ typedef class r3b_ascii_paged_stack {
 		
 		pthread_t _disk_op_thread; //the thread that will handle the disk operations.
 		pthread_attr_t _op_attr; //attributes for the disk operator.
-		pthread_mutex_t _memory_sz_mutex; //lock and unlock the memory counter
-		pthread_mutexattr_t _memory_sz_mutexattr; //the attribute thereof
+		pthread_mutex_t _mem_sz_mutex; //a lock on the memory size
+		pthread_mutexattr_t _mem_sz_mutexattr; //the attribute thereof
 		
 		const unsigned int _own_page_sz; //own page size, a constant
-		unsigned int _memory_sz; //current size in memory
+		long unsigned int _memory_sz; //current size in memory
+		bool _op_busy; //busy flag of the disk operator
 		
 		void swap_buffers(); //swap front and back buffer
 		//these are static because they have to end up into threads
