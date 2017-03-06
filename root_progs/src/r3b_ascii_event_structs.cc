@@ -9,6 +9,12 @@ void *r3b_ascii_event_getbuf( const r3b_ascii_event &event ){
 	const r3b_ascii_track *t_begin = &*event.trk.begin(); //pointer to the begin of the vector
 	const r3b_ascii_track *t_end = &*event.trk.end(); //past the end pointer (iterator)
 
+	//check for consistency
+	if( t_end - t_begin != event.nTracks ){
+		fprintf( stderr, "r3b_ascii_event_getbuf: error: number of tracks and track array dimension are not the same.\n" );
+		exit( 1 );
+	}
+
 	//calculate the size the buffer has to be
 	unsigned int buf_size;
 	const unsigned int evt_info_sz = R3B_ASCII_EVENTINFO_SIZE;
@@ -22,7 +28,7 @@ void *r3b_ascii_event_getbuf( const r3b_ascii_event &event ){
 	memcpy( buf, &event.eventId, evt_info_sz );
 	
 	//copy the tracks
-	memcpy( (char*)buf + evt_info_sz, t_begin, t_end-t_begin );
+	memcpy( (char*)buf + evt_info_sz, t_begin, (t_end-t_begin)*sizeof(r3b_ascii_track) );
 	
 	//and we are done: mark it and return the buffer
 	*(char*)buf_proper = 'E';
@@ -47,7 +53,6 @@ r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf ){
 		exit( 10 );
 	}
 	
-	//shift the buf one up
 	event_buf = (char*)event_buf+1;
 	
 	//the second entry is our target, set a reference to that
@@ -57,7 +62,11 @@ r3b_ascii_event r3b_ascii_event_setbuf( const void *event_buf ){
 	//make the event
 	r3b_ascii_event event = { 0, 0, 0, 0, std::vector<r3b_ascii_track>( n_trk ) };
 	memcpy( &event.eventId, event_buf, evt_info_sz );
-	memcpy( &*event.trk.begin(), (char*)event_buf + evt_info_sz, n_trk*sizeof(r3b_ascii_track) );
+
+	void *track_buf = (char*)event_buf + evt_info_sz;
+	std::copy( (r3b_ascii_track*)track_buf,
+	           (r3b_ascii_track*)track_buf + n_trk,
+	           event.trk.begin() );
 	
 	return event;
 }

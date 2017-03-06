@@ -8,6 +8,7 @@
 #define R3B_ASCII_TRACK_BUFSIZE sizeof(r3b_ascii_track) + 1
 
 #include <vector>
+#include <algorithm> //std::copy
 #include <stdlib.h> //for malloc & co.
 #include <string.h> //memcpy & co.
 #include <stdio.h> //fprintf, stderr
