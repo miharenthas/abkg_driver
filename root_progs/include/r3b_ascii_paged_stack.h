@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <pthread.h>
 
@@ -18,6 +19,13 @@
 #define DEFAULT_PAGE_SIZE 1610612736 //the default page size (1.5 GiB)
                                      //NOTE: this indicates the number of
                                      //      elements that will reside
+
+//a macro to check the pthread error code.
+#define RCK( rc ) \
+if( rc ){ \
+	fprintf( stderr, "r3b_pstack: error: this happened %d at __LINE__.\n", rc ); \
+	exit( rc ); \
+}
 
 typedef class r3b_ascii_paged_stack {
 	public:
@@ -85,7 +93,7 @@ typedef class r3b_ascii_paged_stack {
 		long unsigned int _memory_sz; //current size in memory
 		bool _op_busy; //busy flag of the disk operator
 		
-		void swap_buffers(); //swap front and back buffer
+		char swap_buffers(); //swap front and back buffer
 		//these are static because they have to end up into threads
 		static void *page_out( void *a_file ); //dumps the back buffer to disk
 		static void *page_in( void *a_file ); //retrieve the first file on disk
