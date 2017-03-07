@@ -13,7 +13,7 @@ int main( int argc, char **argv ){
 	
 	//set the page size
 	if( argc > 1 ) r3b_pstack::page_size = atoi( argv[1] );
-	else r3b_pstack::page_size = 128*1024*1024;
+	else r3b_pstack::page_size = 3*1024*1024*1024;
 	
 	//make a paged stack
 	puts( "Making a stack." );
@@ -21,7 +21,7 @@ int main( int argc, char **argv ){
 
 	//begin filling it
 	printf( "Filling the stack: 0000000, 0000000" );
-	for( int e=0, ep=0; e < 1000000; ++e ){
+	for( int e=0, ep=0; e < 9000000; ++e ){
 		evt.eventId = e;
 		ep = stk.push( evt );
 		if( ep ) printf( "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b%07d, %07d", e, ep );

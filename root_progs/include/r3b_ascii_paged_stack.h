@@ -21,9 +21,9 @@
                                      //      elements that will reside
 
 //a macro to check the pthread error code.
-#define RCK( rc ) \
+#define RCK( rc, l ) \
 if( rc ){ \
-	fprintf( stderr, "r3b_pstack: error: this happened %d at __LINE__.\n", rc ); \
+	fprintf( stderr, "r3b_pstack: error: this happened %d at line %d.\n", rc, l ); \
 	exit( rc ); \
 }
 
