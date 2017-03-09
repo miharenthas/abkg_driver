@@ -46,6 +46,7 @@ int main( int argc, char **argv ){
 		{ "verbose", no_argument, NULL, 'v' },
 		{ "help", no_argument, NULL, 'h' },
 		{ "cut-ugly", required_argument, NULL, 'M' },
+		{ "mem-limit", required_argument, NULL, 'N' },
 		{ NULL, 0, NULL, 0 }
 	};
 	
@@ -109,6 +110,9 @@ int main( int argc, char **argv ){
 				break;
 			case 'M' : //set the ugly cut macro
 				r3bsim_options_edit( so, (r3bsim_fmt*)L"M@", optarg );
+				break;
+			case 'N' : //limit the memory
+				r3b_pstack::page_size = atoi( optarg );
 				break;
 			case 'h' : //displays the help
 				system( "cat doc/r3bsim_sim_ascii_help" );

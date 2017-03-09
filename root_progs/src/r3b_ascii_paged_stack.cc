@@ -46,14 +46,14 @@ r3b_ascii_paged_stack::~r3b_ascii_paged_stack(){
 unsigned int r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
 	_front_buf->push_back( given );
 	
-	char swap_rc;
 	int pt_rc;
 	
 	//update the memory size
 	_memory_sz += sizeof(r3b_ascii_event)+given.nTracks*sizeof(r3b_ascii_track);
+	++_nb_elements;
 	
 	if( _memory_sz > (( _op_busy )? 2*_own_page_sz : _own_page_sz) ){
-		while( ( swap_rc = swap_buffers() ) == 'W' ) sleep( 1 );
+		while( swap_buffers() == 'W' ) sleep( 1 );
 	}
 	
 	return _front_buf->size();
@@ -62,11 +62,10 @@ unsigned int r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
 //------------------------------------------------------------------------------------
 //pop an element out of the container
 r3b_ascii_event r3b_ascii_paged_stack::pop(){
-	char swap_rc;
 	int pt_rc;
 	
 	if( _front_buf->empty() ){
-		while( ( swap_rc = swap_buffers() ) == 'W' ) sleep( 1 );
+		while( swap_buffers() == 'W' ) sleep( 1 );
 	}
 	
 	r3b_ascii_event evt;
@@ -77,16 +76,16 @@ r3b_ascii_event r3b_ascii_paged_stack::pop(){
 	
 	//update the memory size
 	_memory_sz -= sizeof(r3b_ascii_event)+evt.nTracks*sizeof(r3b_ascii_track);
+	--_nb_elements;
 	
 	return evt;
 }
 
 //------------------------------------------------------------------------------------
 //top: just look on top of the stack
-r3b_ascii_event r3b_ascii_paged_stack::top(){
+r3b_ascii_event &r3b_ascii_paged_stack::top(){
 	if( _front_buf->empty() ) swap_buffers();
-	if( !_front_buf->empty() ) return _front_buf->front();
-	else{ r3b_ascii_event evt; return evt; }
+	return _front_buf->front();
 }
 
 //------------------------------------------------------------------------------------

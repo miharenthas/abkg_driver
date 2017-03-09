@@ -16,7 +16,7 @@
 
 #include "r3b_ascii_event_structs.h"
 
-#define DEFAULT_PAGE_SIZE 1610612736 //the default page size (1.5 GiB)
+#define DEFAULT_PAGE_SIZE 1073741824 //the default page size (1.5 GiB)
                                      //NOTE: this indicates the number of
                                      //      elements that will reside
 
@@ -44,15 +44,16 @@ typedef class r3b_ascii_paged_stack {
 		//     taking it from the beginning of the stack. 
 		r3b_ascii_event pop();
 		//top: just look on top of the stack
-		r3b_ascii_event top();
+		r3b_ascii_event &top();
 		//check for emptiness:
 		//front buf and pages must be empty
-		inline bool empty(){ return _front_buf->empty() && _pages.empty(); };
+		inline bool empty(){ return _nb_elements; };
 		
 		//check the paging status
 		inline unsigned int own_page_size(){ return _own_page_sz; };
 		inline unsigned int size_in_memory(){ return _memory_sz; };
 		inline unsigned int nb_pages(){ return _pages.size(); };
+		inline long unsigned int size(){ return _nb_elements; };
 		
 		//a static that defines the current page size.
 		//I'm doing it like this because it's unlikely to change
@@ -89,6 +90,8 @@ typedef class r3b_ascii_paged_stack {
 		
 		const unsigned int _own_page_sz; //own page size, a constant
 		long unsigned int _memory_sz; //current size in memory
+		long unsigned int _nb_elements; //the numbe of elements in the stack
+		                                //those on disk included.
 		bool _op_busy; //busy flag of the disk operator
 		
 		char swap_buffers(); //swap front and back buffer

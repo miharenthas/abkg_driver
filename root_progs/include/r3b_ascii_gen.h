@@ -27,7 +27,7 @@
 #define R3B_ASCII_GEN_H
 
 //includes from this toolkit
-//#include "r3b_ascii_paged_queue.h" //a queue-like structure that pages itself to disk
+#include "r3b_ascii_paged_stack.h" //a stack structure that pages itself to disk
 #include "r3b_ascii_event_structs.h" //the track and event data structures.
 
 //inclusions, all of them.
@@ -118,7 +118,7 @@ typedef class _r3b_ascii_generator_custom : public FairGenerator
 
 		//in this buffer we'll store the events from
 		//the input source.
-		std::queue<r3b_ascii_event> _event_buf;
+		r3b_ascii_paged_stack _event_buf;
 		
 		//ion map (not vital, and probably better to save the memory)
 		//but it provides an efficient way to search for keys
