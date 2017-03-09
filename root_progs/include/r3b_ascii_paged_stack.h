@@ -86,8 +86,6 @@ typedef class r3b_ascii_paged_stack {
 		
 		pthread_t _disk_op_thread; //the thread that will handle the disk operations.
 		pthread_attr_t _op_attr; //attributes for the disk operator.
-		pthread_mutex_t _mem_sz_mutex; //a lock on the memory size
-		pthread_mutexattr_t _mem_sz_mutexattr; //the attribute thereof
 		
 		const unsigned int _own_page_sz; //own page size, a constant
 		long unsigned int _memory_sz; //current size in memory

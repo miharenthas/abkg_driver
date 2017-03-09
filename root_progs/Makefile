@@ -13,7 +13,7 @@ ROOT_LIBS += $(R3B_LIBS)
 ROOT_LIBS += $(GEANT_LIBS)
 ROOT_FLAGS = `root-config --cflags`
 ROOT_FLAGS += -L $(SIMPATH)/lib -L $(FAIRROOTPATH)/lib -I $(SIMPATH)/include -I $(SIMPATH)/include/TGeant3 -I $(FAIRROOTPATH)/include
-CXX_FLAGS = -Wno-varargs -std=c++11 -I $(INCLUDE_D) -pthread
+CXX_FLAGS = -Wno-varargs -std=c++11 -I $(INCLUDE_D) -pthread -ggdb
 OBJECTS = gen_bkg_from_histo r3b_ascii_gen r3bsim_driver r3b_ascii_event_structs r3b_ascii_pages_stack
 BINARIES = $(BIN_D)/gen_bkg_from_histo.o $(BIN_D)/r3b_ascii_gen.o $(BIN_D)/r3bsim_driver.o $(BIN_D)/r3b_ascii_event_structs.o $(BIN_D)/r3b_ascii_paged_stack.o
 PROGRAMS = gbkg sbkg

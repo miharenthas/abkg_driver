@@ -13,7 +13,7 @@ int main( int argc, char **argv ){
 	
 	//set the page size
 	if( argc > 1 ) r3b_pstack::page_size = atoi( argv[1] );
-	else r3b_pstack::page_size = 3*1024*1024*1024;
+	else r3b_pstack::page_size = 128*1024*1024;
 	
 	//make a paged stack
 	puts( "Making a stack." );
