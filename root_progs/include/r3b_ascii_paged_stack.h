@@ -19,6 +19,8 @@
 #define DEFAULT_PAGE_SIZE 1073741824 //the default page size (1.5 GiB)
                                      //NOTE: this indicates the number of
                                      //      elements that will reside
+#define OP_BUSY_WAIT_TIME 5000 //the time to spend before checking again
+                               //if the disk operator is busy -- microseconds.
 
 //a macro to check the pthread error code.
 #define RCK( rc, l ) \
@@ -39,10 +41,10 @@ typedef class r3b_ascii_paged_stack {
 		//stack operations: push and pop
 		//push: returns the size of the stack in memory
 		//      receives a reference of an event structur
-		unsigned int push( r3b_ascii_event &given );
+		void push( r3b_ascii_event &given );
 		//pop: returns a brand new event structure
 		//     taking it from the beginning of the stack. 
-		r3b_ascii_event pop();
+		void pop();
 		//top: just look on top of the stack
 		r3b_ascii_event &top();
 		//check for emptiness:

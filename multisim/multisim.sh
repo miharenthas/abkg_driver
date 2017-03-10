@@ -17,6 +17,7 @@ CMD="" #the command line for the program
 INPUT_FILE="" #the input file that will eventually used
 OUTPUT_FILE="" #need to intercept the output file as well, sadly
 NB_ONLINE_CPUs=$( nproc ) #number of online processors
+VERBOSE_FLAG=0 #the verbose flag, causes the program to print something
 
 #flags
 file_flag=0 #true if we are reading from a file and not from stdin

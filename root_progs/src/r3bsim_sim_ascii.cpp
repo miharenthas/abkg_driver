@@ -112,7 +112,7 @@ int main( int argc, char **argv ){
 				r3bsim_options_edit( so, (r3bsim_fmt*)L"M@", optarg );
 				break;
 			case 'N' : //limit the memory
-				r3b_pstack::page_size = atoi( optarg );
+				sscanf( optarg, "%lu", &r3b_pstack::page_size );
 				break;
 			case 'h' : //displays the help
 				system( "cat doc/r3bsim_sim_ascii_help" );

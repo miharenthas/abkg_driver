@@ -43,8 +43,8 @@ r3b_ascii_paged_stack::~r3b_ascii_paged_stack(){
 
 //------------------------------------------------------------------------------------
 //push an element (and get the current size in memory)
-unsigned int r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
-	_front_buf->push_back( given );
+void r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
+	_front_buf->push_front( given );
 	
 	int pt_rc;
 	
@@ -53,38 +53,37 @@ unsigned int r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
 	++_nb_elements;
 	
 	if( _memory_sz > (( _op_busy )? 2*_own_page_sz : _own_page_sz) ){
-		while( swap_buffers() == 'W' ) sleep( 1 );
+		while( swap_buffers() == 'W' ) usleep( OP_BUSY_WAIT_TIME );
 	}
-	
-	return _front_buf->size();
 }
 
 //------------------------------------------------------------------------------------
 //pop an element out of the container
-r3b_ascii_event r3b_ascii_paged_stack::pop(){
+void r3b_ascii_paged_stack::pop(){
 	int pt_rc;
 	
 	if( _front_buf->empty() ){
-		while( swap_buffers() == 'W' ) sleep( 1 );
+		while( swap_buffers() == 'W' ) usleep( OP_BUSY_WAIT_TIME );
 	}
 	
 	r3b_ascii_event evt;
 	if( !_front_buf->empty() ){
-		evt = _front_buf->back();
-		_front_buf->pop_back();
+		evt = _front_buf->front();
+		_front_buf->pop_front();
 	} else { /*eventually, throw something;*/ }
 	
 	//update the memory size
 	_memory_sz -= sizeof(r3b_ascii_event)+evt.nTracks*sizeof(r3b_ascii_track);
 	--_nb_elements;
-	
-	return evt;
-}
+}	
 
 //------------------------------------------------------------------------------------
 //top: just look on top of the stack
 r3b_ascii_event &r3b_ascii_paged_stack::top(){
-	if( _front_buf->empty() ) swap_buffers();
+	if( _front_buf->empty() && _nb_elements ){
+		while( swap_buffers() == 'W' ) usleep( OP_BUSY_WAIT_TIME );
+	}
+
 	return _front_buf->front();
 }
 
@@ -215,7 +214,7 @@ void *r3b_ascii_paged_stack::page_out( void *a_file ){
 	void *buf;
 	while( !the_page.bb->empty() ){
 		//retrieve the event and calc the buffer size.
-		current_evt = &the_page.bb->front();
+		current_evt = &the_page.bb->back();
 		buf_size = r3b_ascii_event_bufsize( *current_evt );
 
 		//linearize the event in the buffer
@@ -233,7 +232,7 @@ void *r3b_ascii_paged_stack::page_out( void *a_file ){
 		                               current_evt->nTracks*sizeof(r3b_ascii_track);
 		
 		//and now, pop it and cleanup*/
-		the_page.bb->pop_front();
+		the_page.bb->pop_back();
 		free( buf );
 	}
 	
@@ -294,7 +293,7 @@ void *r3b_ascii_paged_stack::page_in( void *a_file ){
 
 		//clean up the buffer and push the event
 		free( buf );
-		the_page.bb->push_back( current_evt );
+		the_page.bb->push_front( current_evt );
 
 		//update the memory size
 		the_page.caller->_memory_sz += sizeof(r3b_ascii_event) +
