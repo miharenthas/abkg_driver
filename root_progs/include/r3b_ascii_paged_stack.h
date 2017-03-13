@@ -16,7 +16,7 @@
 
 #include "r3b_ascii_event_structs.h"
 
-#define DEFAULT_PAGE_SIZE 1073741824 //the default page size (1.5 GiB)
+#define DEFAULT_PAGE_SIZE 1073741824 //the default page size (1 GiB)
                                      //NOTE: this indicates the number of
                                      //      elements that will reside
 #define OP_BUSY_WAIT_TIME 5000 //the time to spend before checking again
@@ -49,7 +49,7 @@ typedef class r3b_ascii_paged_stack {
 		r3b_ascii_event &top();
 		//check for emptiness:
 		//front buf and pages must be empty
-		inline bool empty(){ return _nb_elements; };
+		inline bool empty(){ return !( _nb_elements ); };
 		
 		//check the paging status
 		inline unsigned int own_page_size(){ return _own_page_sz; };

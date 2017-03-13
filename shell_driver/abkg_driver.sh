@@ -28,6 +28,7 @@ TEMPLATE_FILE=$TEMPLATE_ROOT"TEMPLATE.abkg" #template file full name
 LOG_FILE="ABKG_runner.log"
 NB_ONLINE_CPUs=$(nproc) #number of available CPUs
 NB_JOBS_GLOBAL=0 #number of jobs requested
+SBKG_MEM_LIMIT=0 #how much memory is a program allowed to use
 
 #global variables
 
@@ -97,6 +98,11 @@ ad_check_env(){
 	
 	#make the script aware of itself
 	AD_HOME_DIR=$ABKG_HOME_DIR/shell_driver
+	
+	#set the memory limit
+	SBKG_MEM_LIMIT=$( echo $( cat /proc/meminfo | grep MemFree ) | sed 's/MemFree: //g;s/ kB//g' )
+	SBKG_MEM_LIMIT=$(( $SBKG_MEM_LIMIT*1024*3/4 )) #in bytes, and allow only 3/4 to be used
+	
 }
 
 #-------------------------------------------------------------------------------------
@@ -576,6 +582,7 @@ ad_run_simulation_F(){
 				             -o $output_name \
 				             -p $par_name \
 				             --no-magnet \
+				             --mem-limit $SBKG_MEM_LIMIT \
 				             --save-geometry \
 				             1>>$LOG_FILE 2>&1 &
 			else
@@ -584,6 +591,7 @@ ad_run_simulation_F(){
 				             -o $output_name \
 				             -p $par_name \
 				             --no-magnet \
+				             --mem-limit $SBKG_MEM_LIMIT \
 				             1>>$LOG_FILE 2>&1 &
 			fi
 		else
@@ -593,6 +601,7 @@ ad_run_simulation_F(){
 				                     -o $output_name \
 				                     -p $par_name \
 				                     --no-magnet \
+				                     --mem-limit $SBKG_MEM_LIMIT \
 				                     --save-geometry \
 				                     1>>$LOG_FILE 2>&1 &
 			else
@@ -601,6 +610,7 @@ ad_run_simulation_F(){
 				                     -o $output_name \
 				                     -p $par_name \
 				                     --no-magnet \
+				                     --mem-limit $SBKG_MEM_LIMIT \
 				                     1>>$LOG_FILE 2>&1 &
 			fi 
 		fi
@@ -647,6 +657,7 @@ ad_run_simulation_P(){
 					   --detector-list $detector_list \
 					   -o $output_name -p $par_name \
 					   --no-magnet --save-geometry \
+					   --mem-limit $(( $SBKG_MEM_LIMIT/$NB_ONLINE_CPUs )) \
 					   1>>$LOG_FILE 2>&1 &
 			else
 				gbkg $a_file --nb-events $nb_events \
@@ -656,6 +667,7 @@ ad_run_simulation_P(){
 					   --detector-list $detector_list \
 					   -o $output_name -p $par_name \
 					   --no-magnet --save-geometry \
+					   --mem-limit $(( $SBKG_MEM_LIMIT/$NB_ONLINE_CPUs )) \
 					   1>>$LOG_FILE 2>&1 &
 			fi
 		
@@ -713,6 +725,7 @@ ad_run_simulation_MP(){
 					   --detector-list $detector_list \
 					   -o $output_name -p $par_name \
 					   --no-magnet --save-geometry \
+					   --mem-limit $(( $SBKG_MEM_LIMIT/$NB_ONLINE_CPUs )) \
 					   1>>$LOG_FILE 2>&1 &
 			
 				echo -e "\tJob $a_job has started."
@@ -772,6 +785,7 @@ ad_parse_input $PARAMS
 
 echo "Settings:"
 echo -e "\tOutput file name tail: $filename"
+echo -e "\tMemory cap: $(( SBKG_MEM_LIMIT/(1024**2) )) MiB"
 echo -e "\tEnergy range: $energy_range"
 echo -e "\tEN_GAMMA: $en_gamma"
 echo -e "\tEN_SIGMA: $en_sigma"

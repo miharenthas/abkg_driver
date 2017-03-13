@@ -16,6 +16,7 @@ r3b_ascii_paged_stack::r3b_ascii_paged_stack():
 	_front_buf( new std::deque<r3b_ascii_event> ),
 	_back_buf( new std::deque<r3b_ascii_event> ),
 	_memory_sz( 0 ),
+	_nb_elements( 0 ),
 	_op_busy( false )
 {
 	int pt_rc;
@@ -36,6 +37,9 @@ r3b_ascii_paged_stack::~r3b_ascii_paged_stack(){
 	//after killing the disk operator
 	int pt_rc;
 	while( !_pages.empty() ){ fclose( _pages.top() ); _pages.pop(); }
+	
+	//destroy the attribute
+	pthread_attr_destroy( &_op_attr );
 }
 
 //------------------------------------------------------------------------------------
@@ -52,7 +56,7 @@ void r3b_ascii_paged_stack::push( r3b_ascii_event &given ){
 	_memory_sz += sizeof(r3b_ascii_event)+given.nTracks*sizeof(r3b_ascii_track);
 	++_nb_elements;
 	
-	if( _memory_sz > (( _op_busy )? 2*_own_page_sz : _own_page_sz) ){
+	if( _memory_sz > (( _op_busy )? _own_page_sz : _own_page_sz/2 ) ){
 		while( swap_buffers() == 'W' ) usleep( OP_BUSY_WAIT_TIME );
 	}
 }
@@ -113,7 +117,6 @@ char r3b_ascii_paged_stack::swap_buffers(){
 	//this should have no consequences.
 	if( _op_busy ) return 'W';
 	pthread_join( _disk_op_thread, NULL );
-	pthread_attr_destroy( &_op_attr );
 
 	a_page *a_file;
 	//when a buffer swap is requested, we have four cases:
@@ -127,12 +130,6 @@ char r3b_ascii_paged_stack::swap_buffers(){
 		//then the back buffer is full
 		std::swap( _front_buf, _back_buf );
 		
-		//prepare the disk operator attribute
-		pt_rc = pthread_attr_init( &_op_attr ); RCK( pt_rc, __LINE__ );
-		pt_rc = pthread_attr_setdetachstate( &_op_attr, PTHREAD_CREATE_JOINABLE ); RCK( pt_rc, __LINE__ );
-		pt_rc = pthread_attr_setstacksize( &_op_attr,
-				2*ceil( _own_page_sz/_back_buf->size() ) + 8388608 ); RCK( pt_rc, __LINE__ );
-				
 		//now, fill the back buffer:
 		if( _pages.empty() ) return 'E'; //we have no files to load.
 		a_file = a_page_alloc( _pages.top(), _back_buf ); 
@@ -149,12 +146,6 @@ char r3b_ascii_paged_stack::swap_buffers(){
 		//then the front buffer is full
 		//and the back buffer is empty
 		std::swap( _front_buf, _back_buf );
-		
-		//prepare the disk operator attribute
-		pt_rc = pthread_attr_init( &_op_attr ); RCK( pt_rc, __LINE__ );
-		pt_rc = pthread_attr_setdetachstate( &_op_attr, PTHREAD_CREATE_JOINABLE ); RCK( pt_rc, __LINE__ );
-		pt_rc = pthread_attr_setstacksize( &_op_attr,
-				2*ceil( _own_page_sz/_back_buf->size() ) + 8388608 ); RCK( pt_rc, __LINE__ );
 		
 		//page out the back buffer, now full
 		a_file = a_page_alloc( tmpfile(), _back_buf );
@@ -177,6 +168,21 @@ char r3b_ascii_paged_stack::swap_buffers(){
 		
 		//and swap the buffers
 		std::swap( _front_buf, _back_buf );
+		
+		_pages.pop(); //remove the used page (the file will be closed)
+		
+		//in this case, we may also want to refill the back buffer
+		//because we are probably popping a lot
+		if( _pages.empty() ) return 'E'; //we have no files to load.
+		a_file = a_page_alloc( _pages.top(), _back_buf ); 
+		pt_rc = pthread_create( &_disk_op_thread,
+		                        &_op_attr,
+		                        page_in,
+		                        (void*)a_file );  RCK( pt_rc, __LINE__ );
+		//NOTE: in order to guarantee that the file is not
+		//      closed while operations are in progress,
+		//      page_in() will handle this sort of things.
+		_pages.pop(); //remove the used page (the file will be closed)
 	} else if( !_front_buf->empty() && !_back_buf->empty() ){
 		//then the back buffer needs flushing before swapping
 		a_file = a_page_alloc( tmpfile(), _back_buf );
@@ -184,6 +190,9 @@ char r3b_ascii_paged_stack::swap_buffers(){
 		_pages.push( a_file->file );
 
 		std::swap( _front_buf, _back_buf );
+		
+		//do an empty trhread, so pthread_join doesn't explode
+		pt_rc = pthread_create( &_disk_op_thread, &_op_attr, page_out, NULL ); RCK( pt_rc, __LINE__ );
 	}
 
 	return 0;

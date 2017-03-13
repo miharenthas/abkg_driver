@@ -42,7 +42,7 @@ r3b_ascii_paged_stack :
 gbkg : gen_bkg_from_histo
 	$(CXX) $(SRC_D)/gen_bkg.cpp $(BIN_D)/gen_bkg_from_histo.o $(ROOT_LIBS) $(ROOT_FLAGS) $(CXX_FLAGS) -o gbkg
 
-sbkg : r3b_ascii_gen r3bsim_driver
+sbkg : r3b_ascii_gen r3bsim_driver r3b_ascii_event_structs r3b_ascii_paged_stack
 	$(CXX) $(SRC_D)/r3bsim_sim_ascii.cpp $(BIN_D)/{r3b_ascii_{gen,event_structs,paged_stack},r3bsim_driver}.o $(ROOT_LIBS) $(ROOT_FLAGS) $(CXX_FLAGS) -o sbkg
 #-------------------------------------------------------------------------------------
 #phony
