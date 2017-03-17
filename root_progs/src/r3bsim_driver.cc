@@ -37,6 +37,7 @@ r3bsim_opts *r3bsim_options_alloc(){
 	strcpy( so->ParFile, "r3bpar_bkg.root" );
 	so->EventFile = NULL;
 	strcpy( so->usr_cuts, "./ugly/SetCuts.C" );
+	so->field_scale = -0.5; //apparently, this is the default...
 	
 	return so;
 }
@@ -107,6 +108,9 @@ void r3bsim_options_edit( r3bsim_opts *so, const r3bsim_fmt *format, ... ){
 				break;
 			case USR_CUTS :
 				strcpy( so->usr_cuts, va_arg( args, char* ) );
+				break;
+			case FIELD_SCALE :
+				so->field_scale = va_arg( args, double );
 				break;
 		}
 	}
@@ -299,7 +303,7 @@ float r3bsim_driver( r3bsim_opts &so ){
 //------------------------------------------------------------------------------------
 //magnetic field building helper function
 FairField *r3bsim_magmant( FairRunSim *run, r3bsim_opts &so ){
-	Int_t fieldScale = 1;
+	float fieldScale = so.field_scale; //apparently we need a minus
 
 	//NB: <D.B>
 	// If the Global Position of the Magnet is changed
