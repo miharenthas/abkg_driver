@@ -99,7 +99,7 @@ msim_run_sim(){
 		if ! [ -p $current_pipe ]; then mkfifo $current_pipe; fi
 		
 		#make the name of the output file
-		current_ofile=$( printf "proc_%02d_" $nb_active_jobs )$OUTPUT_FILE
+		current_ofile=$OUTPUT_FILE$( printf ".proc_%02d" $nb_active_jobs )
 		
 		if [ $VERBOSE_FLAG -eq 0 ]; then
 			$PROGRAM $current_pipe $CMD -o $current_ofile 2>/dev/null 1>&2 &
@@ -224,7 +224,7 @@ done
 msim_parse_cmd_line $PARAMS
 
 if [ $VERBOSE_FLAG -eq 1 ]; then
-	echo "*** Welcome in MULTISIM***"
+	echo "*** Welcome in MULTISIM ***"
 	echo "running with "$NB_ONLINE_CPUs" instances of "$PROGRAM
 fi
 
@@ -235,7 +235,7 @@ msim_run_sim
 if [ $VERBOSE_FLAG -eq 1 ]; then
 	echo "Attempting to joing ROOT files..."
 fi
-msim_join_root_files $( ls proc_??_$OUTPUT_FILE ) $OUTPUT_FILE
+msim_join_root_files $( ls $OUTPUT_FILE.proc_?? ) $OUTPUT_FILE
 
 if [ $VERBOSE_FLAG -eq 1 ]; then
 	echo "***Done. Goodbye.***"
