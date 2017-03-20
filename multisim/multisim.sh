@@ -160,9 +160,11 @@ msim_job_control(){
 		if [ $VERBOSE_FLAG -eq 1 ]; then
 			echo -ne "\b"
 			case $(( seconds%4 )) in
-				0 | 2 ) echo -n "-"
+				0 ) echo -n "-"
 				        ;;
 				1 ) echo -n "\\"
+				    ;;
+				2 ) echo -n "|"
 				    ;;
 				3 ) echo -n "/"
 				    ;;
