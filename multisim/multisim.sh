@@ -15,7 +15,8 @@
 PROGRAM="" #the program that will be used
 CMD="" #the command line for the program
 INPUT_FILE="" #the input file that will eventually used
-OUTPUT_FILE="" #need to intercept the output file as well, sadly
+OUTPUT_FILE="r3bsim.root" #need to intercept the output file as well, sadly
+PAR_FILE="r3bpar.root" #need to intercept also the parameter file (avoid mangling)
 NB_ONLINE_CPUs=$( nproc ) #number of online processors
 VERBOSE_FLAG=0 #the verbose flag, causes the program to print something
 
@@ -32,28 +33,30 @@ compression_flag=0 #true if we are dealing with a compressed file
 msim_parse_cmd_line(){
 	#check if $1 is '-F' or '-C', in that case we have an input file, compressed
 	#in the latter case
-	case $1 in
-		-F )
-			shift
-			INPUT_FILE=$1
-			file_flag=1
-			shift
-			;;
-		-C )
-			shift
-			INPUT_FILE=$1
-			file_flag=1
-			compression_flag=1
-			shift
-			;;
-		-h | --help )
-			cat doc/multisim_help
-			;;
-		-v | --verbose )
-			VERBOSE_FLAG=1
-			shift
-			;;
-	esac
+	while [[ $1 == -* ]]; do
+		case $1 in
+			-F )
+				shift
+				INPUT_FILE=$1
+				file_flag=1
+				shift
+				;;
+			-C )
+				shift
+				INPUT_FILE=$1
+				file_flag=1
+				compression_flag=1
+				shift
+				;;
+			-h | --help )
+				cat doc/multisim_help
+				;;
+			-v | --verbose )
+				VERBOSE_FLAG=1
+				shift
+				;;
+		esac
+	done
 	
 	#now comes the name of the program
 	PROGRAM=$1
@@ -66,6 +69,12 @@ msim_parse_cmd_line(){
 		if [ $1 == "-o" ] || [ $1 == "--output-file" ]; then
 			shift
 			OUTPUT_FILE=$1
+			shift
+		fi
+		#intercept also the parameter file
+		if [ $1 == "-p" ] || [ $1 == "--parameter-file" ]; then
+			shift
+			PAR_FILE=$1
 			shift
 		fi
 		
@@ -100,12 +109,18 @@ msim_run_sim(){
 		
 		#make the name of the output file
 		current_ofile=$OUTPUT_FILE$( printf ".proc_%02d" $nb_active_jobs )
+		current_pfile=""
+		if [ $nb_active_jobs -eq 0 ]; then
+			current_pfile=$PAR_FILE;
+		else
+			current_pfile=/dev/null
+		fi
 		
 		if [ $VERBOSE_FLAG -eq 0 ]; then
-			$PROGRAM $current_pipe $CMD -o $current_ofile 2>/dev/null 1>&2 &
+			$PROGRAM $current_pipe $CMD -o $current_ofile -p $current_pfile 2>/dev/null 1>&2 &
 		elif [ $VERBOSE_FLAG -eq 1 ]; then
-			$PROGRAM $current_pipe $CMD -o $current_ofile 2>>$logfile 1>&2 &
-			echo -e "\t"$PROGRAM $current_pipe $CMD -o $current_ofile
+			$PROGRAM $current_pipe $CMD -o $current_ofile -p $current_pfile 2>>$logfile 1>&2 &
+			echo -e "\t"$PROGRAM $current_pipe $CMD -o $current_ofile -p $current_pfile
 		fi
 		
 		nb_active_jobs=$( pgrep -f -P $$ -c "$PROGRAM" )
