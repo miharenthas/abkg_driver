@@ -47,6 +47,9 @@ Options:
                                 property can also be passed with the detector
                                 list (and so it should).
   
+  --mem-limit <long int>     Sets a limit for the memory usable by the program.
+                                It's in bytes and the defaul is 1GiB.
+  
   -h --help                  Displays this help and exits with 0 status.
 
 Detector list format:

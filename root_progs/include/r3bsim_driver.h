@@ -83,6 +83,7 @@ typedef struct r3bsim_background_generator_options {
 	FILE *EventFile;
 	Bool_t verbose;
 	char usr_cuts[128];
+	float field_scale;
 } r3bsim_opts;
 
 //the format descriptor enum
@@ -100,7 +101,8 @@ typedef enum r3bsim_options_format {
 	PAR_FILE, //sets the name of the parameter file, wide character J
 	EVENT_FILE, //sets the name of the event file, wide character K
 	VERBOSE, //sets the verbose flag, wide character L
-	USR_CUTS //sets the user cuts maro path, wide character M
+	USR_CUTS, //sets the user cuts maro path, wide character M
+	FIELD_SCALE //sets the field scale, wide character N
 } r3bsim_fmt;
 
 //------------------------------------------------------------------------------------

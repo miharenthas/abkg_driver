@@ -178,19 +178,19 @@ Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 	
 	if( _verbose ){
 		std::cout << "-I- R3BAsciiGenerator: Giving Event: "
-		          << _event_buf.front().eventId << ",  pBeam = "
-			        << _event_buf.front().pBeam << "GeV, b = "
-			        << _event_buf.front().b << " fm, multiplicity "
-			        << _event_buf.front().nTracks << std::endl;
+		          << _event_buf.top().eventId << ",  pBeam = "
+			        << _event_buf.top().pBeam << "GeV, b = "
+			        << _event_buf.top().b << " fm, multiplicity "
+			        << _event_buf.top().nTracks << std::endl;
 	}
 	
 	//bloop bon bthe btracks
-	for( int t=0; t < _event_buf.front().nTracks; ++t ){
-		if( _event_buf.front().trk[t].iPid < 0 ){ //ion
+	for( int t=0; t < _event_buf.top().nTracks; ++t ){
+		if( _event_buf.top().trk[t].iPid < 0 ){ //ion
 			//Get the *proper* ion name (you pillock)
 			r3b_ascii_gen::GetIonName( ion_namebuf,
-			                           _event_buf.front().trk[t].iA,
-			                           _event_buf.front().trk[t].iZ );
+			                           _event_buf.top().trk[t].iA,
+			                           _event_buf.top().trk[t].iZ );
 			p_part = fPDG->GetParticle( ion_namebuf );
 			if( p_part == NULL ){
 					if( _verbose ) std::cerr << "-W- R3BAsciiGenerator::ReadEvent: Cannot find "
@@ -198,15 +198,15 @@ Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 					pdg_code = 0;					
 					continue;
 			} else pdg_code = p_part->PdgCode();
-		} else pdg_code = _event_buf.front().trk[t].iA; //not ion (just its mass number)
+		} else pdg_code = _event_buf.top().trk[t].iA; //not ion (just its mass number)
 		
 		fpg->AddTrack( pdg_code,
-		               _event_buf.front().trk[t].px,
-		               _event_buf.front().trk[t].py,
-		               _event_buf.front().trk[t].pz,
-		               _event_buf.front().trk[t].vx,
-		               _event_buf.front().trk[t].vy,
-		               _event_buf.front().trk[t].vz );
+		               _event_buf.top().trk[t].px,
+		               _event_buf.top().trk[t].py,
+		               _event_buf.top().trk[t].pz,
+		               _event_buf.top().trk[t].vx,
+		               _event_buf.top().trk[t].vy,
+		               _event_buf.top().trk[t].vz );
 	} //end of track loop
 	
 	//remove the current event

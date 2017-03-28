@@ -46,6 +46,8 @@ int main( int argc, char **argv ){
 		{ "verbose", no_argument, NULL, 'v' },
 		{ "help", no_argument, NULL, 'h' },
 		{ "cut-ugly", required_argument, NULL, 'M' },
+		{ "mem-limit", required_argument, NULL, 'L' },
+		{ "field-scale", required_argument, NULL, 'N' },
 		{ NULL, 0, NULL, 0 }
 	};
 	
@@ -110,6 +112,12 @@ int main( int argc, char **argv ){
 			case 'M' : //set the ugly cut macro
 				r3bsim_options_edit( so, (r3bsim_fmt*)L"M@", optarg );
 				break;
+			case 'L' : //limit the memory
+				sscanf( optarg, "%lu", &r3b_pstack::page_size );
+				break;
+			case 'N' : //set the field scale
+				r3bsim_options_edit( so, (r3bsim_fmt*)L"N@", atof( optarg ) );
+				break;
 			case 'h' : //displays the help
 				system( "cat doc/r3bsim_sim_ascii_help" );
 				exit( 0 );
@@ -157,6 +165,7 @@ int main( int argc, char **argv ){
 		printf( "\tMonte Carlo engine: %s\n", so->fMC );
 		printf( "\tfUserPList?: %c\n", (so->fUserPList)?'Y':'N' );
 		printf( "\tUse magnet?: %c\n", (so->fR3BMagnet)?'Y':'N' );
+		printf( "\tField scale: %f\n", so->field_scale );
 		printf( "\tCurrent: %f\n", so->fMeasCurrent );
 		printf( "\tOuput file: %s\n", so->OutFile );
 		printf( "\tParameter file: %s\n", so->ParFile );
