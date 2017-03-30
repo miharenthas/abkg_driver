@@ -138,7 +138,6 @@ void many_to_one( int argc, char **argv ){
 			fprintf( stderr, "evtmus: error: file name too long\n" );
 			exit( 1 );
 		}
-		printf( "%d", f );
 		if( argv[f][0] != '-' ){
 			strcpy( out_fname, argv[f] );
 			break;
