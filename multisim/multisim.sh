@@ -221,10 +221,16 @@ msim_join_root_files(){
 	#and proceed only if the simulation is reasonably small.
 	if [ $( du -c $tmp_files | grep total | sed "s/total//g" ) -le 103809024 ]; then
 	
-		hadd -v 0 $stitched_file $tmp_files 2>/dev/null 1>&2
+		hadd -v 0 -f $stitched_file $tmp_files 2>/dev/null 1>&2
 		
 		#cleanup (nonoptional here)
-		rm $tmp_files
+		if [ $(( $( du -c $tmp_files | grep total | sed "s/total//g" ) - 1024 )) -le \
+		     $( du -c $stitched_file | grep total | sed "s/total//g" ) ]; then
+			rm $tmp_files
+		else
+			echo "Sorry: hadd couldn't join ROOT files properly."
+			rm $stitched_file
+		fi
 	fi
 }
 
