@@ -156,7 +156,7 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	if( strstr( det_opts, ":TOF:" ) ) m["TOF"] = "tof_v13a.geo.root";
 	if( strstr( det_opts, ":MTOF:" ) ) m["MTOF"] = "mtof_v13a.geo.root";
 	if( strstr( det_opts, ":DTOF:" ) ) m["DTOF"] = "dtof_v15a.geo.root";
-	if( strstr( det_opts, ":DHC:" ) ) m["DHC"] = "dch_v13a.geo.root";
+	if( strstr( det_opts, ":DCH:" ) ) m["DCH"] = "dch_v13a.geo.root";
 	if( strstr( det_opts, ":TRACKER:" ) ) m["TRACKER"] = "tra_v13vac.geo.root";
 	if( strstr( det_opts, ":STaRTrackv14a:" ) ||
 	    strstr( det_opts, ":STaRTrack:" ) ) m["STaRTrack"] = "startra_v14a.geo.root";
