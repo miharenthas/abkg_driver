@@ -59,6 +59,7 @@
 #include "R3BGladFieldMap.h"
 #include "R3BFieldPar.h"
 #include "R3BRattlePlane.h"
+#include "R3BStopperPlane.h"
 
 //customised ASCII generator
 #include "r3b_ascii_gen.h"

@@ -172,7 +172,6 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	
 	//rattleplane section: requires a bit of attention because I'd like to put more
 	//than one in (eventually, not yet implemented)
-	//TODO: implement support for multiple rattleplanes
 	char rp_specbuf[1024];
 	const char *p_end, *p_begin;
 	if( strstr( det_opts, ":RATTLEPLANE:" ) ){
@@ -181,6 +180,15 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
 			m["RATTLEPLANE"] = rp_specbuf;
 		} else m["RATTLEPLANE"] = "RattleSpecs+[0,0,0,0,0,0,30,30,5,G]";
+	}
+
+	//stopper plane section: it's a rattleplane, only kills the particles on entrance.
+	if( strstr( det_opts, ":STOPPERPLANE:" ) ){
+		if( (p_begin = strstr( det_opts, "StopperSpecs" )) != NULL ){
+			p_end = strstr( det_opts, "SpecEnd" );
+			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
+			m["STOPPERPLANE"] = rp_specbuf;
+		} else m["STOPPERPLANE"] = "StopperSpecs+[0,0,0,0,0,0,30,30]";
 	}
 	
 	return m;
@@ -552,6 +560,46 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 			R3BRattlePlane::mk_unique_name( rattlename );
 			rattleplane = new R3BRattlePlane( specs, rattlename, kTRUE );
 			run->AddModule( rattleplane );
+		}
+	}
+
+	//The stopper plane
+	if( !so.fDetlist["STOPPERPLANE"].empty() ) {
+		//seed a random sequence,
+		//useful for unique name generation.
+		R3BRattlePlane::seed_unique_namer();
+		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 30, 30, 1,
+		                                  (R3BTAM_switcher)L'G'};
+		char stopperspecs[1024];
+		strcpy( stopperspecs, so.fDetlist["STOPPERPLANE"].c_str() );
+		char *spc_tok = strtok( stopperspecs, "+" ); //pre-load:
+		                                            //note that now spc_tok is "RattleSpecs"
+		char stoppername[64];
+		R3BStopperPlane *stopperplane;
+		
+		//instantiate as many rattleplanes as found in the specifications
+		//and name them uniquely with the tool in the class.
+		while( spc_tok != NULL ){
+			spc_tok = strtok( NULL, "+" );
+			if( spc_tok == NULL ) break; //leave if there aren't any specs
+			sscanf( spc_tok,
+				"[%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf]",
+				&specs.rot_x,
+				&specs.rot_y,
+				&specs.rot_z,
+				&specs.T_x,
+				&specs.T_y,
+				&specs.T_z,
+				&specs.width,
+				&specs.height );
+			specs.depth = 1; //fixing it here
+			specs.stuff = (R3BTAM_switcher)L'G'; //always lead --want
+			                                     //them to interact ASAP
+
+			strcpy( stoppername, "stopperplane_" );
+			R3BRattlePlane::mk_unique_name( stoppername );
+			stopperplane = new R3BStopperPlane( specs, stoppername, kTRUE );
+			run->AddModule( stopperplane );
 		}
 	}
 }
