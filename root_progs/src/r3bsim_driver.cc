@@ -568,7 +568,7 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 		//seed a random sequence,
 		//useful for unique name generation.
 		R3BRattlePlane::seed_unique_namer();
-		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 30, 30, 1,
+		R3BRattlePlane::rp_specs specs = {0, 0, 0, 0, 0, 0, 30, 30, 10,
 		                                  (R3BTAM_switcher)L'G'};
 		char stopperspecs[1024];
 		strcpy( stopperspecs, so.fDetlist["STOPPERPLANE"].c_str() );
@@ -592,7 +592,7 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 				&specs.T_z,
 				&specs.width,
 				&specs.height );
-			specs.depth = 1; //fixing it here
+			specs.depth = 10; //fixing it here
 			specs.stuff = (R3BTAM_switcher)L'G'; //always lead --want
 			                                     //them to interact ASAP
 
