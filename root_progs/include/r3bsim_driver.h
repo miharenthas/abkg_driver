@@ -129,6 +129,7 @@ NOTE: this implementation was the lowes hanging fruit.
       Probably smarter things are coming.
 *************************************************************************************/
 std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ); //parse a detector description.
+std::string r3bsim_make_geofname( const char *prefix, const char *tag_ptr ); //make a file name
 
 //------------------------------------------------------------------------------------
 //helper functions:

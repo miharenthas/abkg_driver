@@ -123,9 +123,26 @@ void r3bsim_options_free( r3bsim_opts *so ){
 }
 
 //------------------------------------------------------------------------------------
+//make the geometry file name with an optional geometry tag.
+std::string r3bsim_make_geofname( const char *prefix, const char *tag_ptr ){
+	char tag[64], tag_fmt[80];
+	
+	sscanf( tag_ptr, "%s[", &tag_fmt );
+	strcat( tag_fmt, "[%s]" );
+	sscanf( tag_ptr, tag_fmt, &tag );
+	
+	std::string fname( prefix );
+	fname += tag;
+	
+	return fname + ".geo.root";
+}
+
+//------------------------------------------------------------------------------------
 //very ugly detector list parser
+//TODO: use the make_geofname util!
 std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){	
 	std::map<std::string, std::string> m;
+	
 
 	if( strstr( det_opts, ":TARGET:" ) ){
 		if( strstr( det_opts, "LeadTarget" ) ) m["TARGET"] = "target_LeadTarget.geo.root";
@@ -145,7 +162,8 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	}
 	if( strstr( det_opts, ":ALAFIELD:" ) ) m["ALAFIELD"] = "alafield";
 	if( strstr( det_opts, ":GLAD:" ) ){
-		m["GLAD"] = "glad_v13a.geo.root";
+		if( strstr( det_opts, "GladVacuum" ) ) m["GLAD"] = "glad_v13a_vacuum.geo.root";
+		else m["GLAD"] = "glad_v13a.geo.root";
 		m["GLAFIELD"] = "glafield";
 	}
 	if( strstr( det_opts, ":GLAFIELD:" ) ) m["GLAFIELD"] = "glafield";
@@ -176,7 +194,7 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	const char *p_end, *p_begin;
 	if( strstr( det_opts, ":RATTLEPLANE:" ) ){
 		if( (p_begin = strstr( det_opts, "RattleSpecs" )) != NULL ){
-			p_end = strstr( det_opts, "SpecEnd" );
+			p_end = strstr( p_begin, "SpecEnd" );
 			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
 			m["RATTLEPLANE"] = rp_specbuf;
 		} else m["RATTLEPLANE"] = "RattleSpecs+[0,0,0,0,0,0,30,30,5,G]";
@@ -185,7 +203,7 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	//stopper plane section: it's a rattleplane, only kills the particles on entrance.
 	if( strstr( det_opts, ":STOPPERPLANE:" ) ){
 		if( (p_begin = strstr( det_opts, "StopperSpecs" )) != NULL ){
-			p_end = strstr( det_opts, "SpecEnd" );
+			p_end = strstr( p_begin, "SpecEnd" );
 			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
 			m["STOPPERPLANE"] = rp_specbuf;
 		} else m["STOPPERPLANE"] = "StopperSpecs+[0,0,0,0,0,0,30,30]";
