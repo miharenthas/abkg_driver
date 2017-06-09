@@ -19,7 +19,7 @@ function [ PDG, energy, solid_angle, event_specs, out_file ] = pfire_input_from_
 	solid_angle = [0, 2*pi, 0, pi];
 	event_specs.nb_events = 1e3;
 	event_specs.trk_p_evt = 1;
-	out_file = 'afile'
+	out_file = 'afile';
 		
 	%loop on the file's lines
 	while ~get_out

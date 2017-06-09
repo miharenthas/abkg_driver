@@ -6,6 +6,7 @@
 function directions = pfire_distro( ang, nb )
 	th_from = ang(1);
 	th_to = ang(2);
+	%assuming Phi to be the angle the particle do with the beam axis
 	ph_from = ang(3);
 	ph_to = ang(4);
 	

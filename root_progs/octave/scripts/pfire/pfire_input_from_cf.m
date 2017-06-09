@@ -19,6 +19,7 @@ function [ PDG, energy, solid_angle, event_specs, out_file ] = upi_input_from_cf
 	solid_angle = [0, 2*pi, 0, pi];
 	event_specs.nb_events = 1e3;
 	event_specs.trk_p_evt = 1;
+	out_file = 'afile';
 		
 	%check the existence of a file
 	if ~exist( cf_name, 'file' )
