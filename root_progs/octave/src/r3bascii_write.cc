@@ -48,10 +48,10 @@ void r3bascii_write( octave_map o_tracks, octave_map o_evts, FILE *out_f ){
 				throw std::out_of_range( "Track out of range!" );
 			}
 			
-			fprintf( out_f, "%d\t%hhu\t%hu\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
+			fprintf( out_f, "%d\t%hhu\t%u\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
 			         o_trk_iPid(track_idx).int_value(),
-			         (unsigned char)o_trk_iZ(track_idx).uint32_scalar_value(),
-			         (unsigned int)o_trk_iA(track_idx).uint8_scalar_value(),
+			         (unsigned char)o_trk_iZ(track_idx).uint8_scalar_value(),
+			         (unsigned int)o_trk_iA(track_idx).uint32_scalar_value(),
 			         o_trk_px(track_idx).float_value(),
 			         o_trk_py(track_idx).float_value(),
 			         o_trk_pz(track_idx).float_value(),
