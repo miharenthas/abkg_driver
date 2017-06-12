@@ -448,10 +448,10 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 	}
 
 	if( !so.fDetlist["CALIFA"].empty() ) {
-		R3BDetector* calo = new R3BCalo("Califa", kTRUE);
-		((R3BCalo *)calo)->SelectGeometryVersion(10);
+		R3BDetector* calo = new R3BCalifa("Califa", kTRUE);
+		((R3BCalifa *)calo)->SelectGeometryVersion(10);
 		//Selecting the Non-uniformity of the crystals (1 means +-1% max deviation)
-		((R3BCalo *)calo)->SetNonUniformity(1.0);
+		((R3BCalifa *)calo)->SetNonUniformity(1.0);
 		calo->SetGeometryFileName( so.fDetlist["CALIFA"].c_str() );
 		run->AddModule(calo);
 	}

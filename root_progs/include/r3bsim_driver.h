@@ -42,7 +42,7 @@
 #include "R3BMagnet.h"
 #include "R3BGladMagnet.h"
 #include "R3BXBall.h"
-#include "R3BCalo.h"
+#include "R3BCalifa.h"
 #include "R3BTra.h"
 #include "R3BSTaRTra.h"
 #include "R3BDch.h"
