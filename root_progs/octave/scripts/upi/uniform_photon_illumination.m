@@ -21,7 +21,7 @@ function uniform_photon_illumination( varargin )
 	
 	if ~nargin
 		%input from prompt
-		[run_file, out_file, nb_events, nrg ] = upi_input_from_prompt();
+		[run_file, out_file, nb_events, nrg, beta_0 ] = upi_input_from_prompt();
 	elseif nargin == 1
 		if ischar( varargin{1} )
 			%load a config file with the settings
@@ -31,7 +31,12 @@ function uniform_photon_illumination( varargin )
 		end
 	elseif nargin == 4
 		run_file = varargin{1}; %file where the run is to be found
-		out_file = varargin{2}; %where we're going to save th events
+		if ischar( varargin{2} )
+			out_file = varargin{2}; %where we're going to save th events
+			beta_0 = 1;
+		elseif isscalar( varargin{2} )
+			beta_0 = varargin{2};
+		end
 		nb_events = varargin{3}; %number of events to be generated
 		nrg = varargin{4}; %the energy of the photons.
 	end
@@ -55,10 +60,15 @@ function uniform_photon_illumination( varargin )
 	nb_lines = length( nrg );
 	
 	%first job: load the run to get the doppler shift
-	printf( 'Loading track info...' );
-	run_track_info = xb_load_track_info( run_file );
-	beta_0 = [run_track_info.beta_0];
-	clear run_track_info; %some pointless cleanup
+	if beta_0 == 1
+		printf( 'Loading track info...' );
+		run_track_info = xb_load_track_info( run_file );
+		beta_0 = [run_track_info.beta_0];
+		clear run_track_info;
+	else
+		printf( 'Making monotone beta...' );
+		beta_0 = beta_0*ones( 1, nb_events );
+	end
 	printf( ' done.\n' );
 	
 	%timing checkpoint

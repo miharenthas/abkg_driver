@@ -1,5 +1,5 @@
 %-*- texinfo -*-
-%@deftypefn {Function file} {[@var{run_file},@var{out_file},@var{nb_events},@var{energy}]} = upi_input_from_cf( @var{config_file} )
+%@deftypefn {Function file} {[@var{run_file},@var{out_file},@var{nb_events},@var{energy},@var{beta_0}]} = upi_input_from_cf( @var{config_file} )
 %This function drives the parsing of a config file and returns the four relevant entries to the UPI script.
 %The config file shall be formatted as follows:
 %Everything behing an hash sign will be regarded as a comment and left out.
@@ -9,13 +9,14 @@
 %@seealso{ upi_input_from_prompt, upi_parse_cmd }
 %@end deftypefn
 
-function [run_file, out_file, nb_events, nrg ] = upi_input_from_cf( cf_name )
+function [run_file, out_file, nb_events, nrg, beta_0 ] = upi_input_from_cf( cf_name )
 	%decalre-ish the input variables
 	get_out = 0;
 	run_file = 'none';
 	out_file = 'none';
 	nb_events = 10;
 	nrg = 30;
+	beta_0 = 0.98;
 	
 	%check the existence of a file
 	if ~exist( cf_name, 'file' )
@@ -34,11 +35,18 @@ function [run_file, out_file, nb_events, nrg ] = upi_input_from_cf( cf_name )
 		[cmd, opts] = upi_parse_cmd( user_says );
 		
 		switch( cmd )
+			case 'beta' %get a beta for all the events
+				if isempty( opts )
+					disp( 'upi: syntax error: beta requires one argument.' );
+				else
+					beta_0 = str2num( opts{1} );
+				end
 			case 'run' %reads a filename for the run
 				if isempty( opts )
 					disp( 'upi: syntax error: run requires one argument.' );
 				else
 					run_file = opts{1};
+					beta_0 = 1;
 				end
 			case 'out' %sets an output file name
 				if isempty( opts )

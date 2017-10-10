@@ -1,17 +1,18 @@
 %-*- texinfo -*-
-%@deftypefn {Function file} {[@var{run_file},@var{out_file},@var{nb_events},@var{energy}]} = upi_input_from_prompt()
+%@deftypefn {Function file} {[@var{run_file},@var{out_file},@var{nb_events},@var{energy},@var{beta_0}]} = upi_input_from_prompt()
 %This function displays a prompt capable of reading the relevant quantities to UPI: run file, output file, number of events and energy.
 %The command syntax is a) trivial b) the same as required by the config file.
 %@seealso{ upi_input_from_cf, upi_parse_cmd }
 %@end deftypefn
 
-function [run_file, out_file, nb_events, nrg ] = upi_input_from_prompt()
+function [run_file, out_file, nb_events, nrg, beta_0 ] = upi_input_from_prompt()
 	%decalre-ish the input variables
 	get_out = 0;
 	run_file = 'none';
 	out_file = 'none';
 	nb_events = 10;
 	nrg = 30;
+	beta_0 = 0.98;
 	
 	%loop on the prompt
 	while ~get_out
@@ -23,11 +24,18 @@ function [run_file, out_file, nb_events, nrg ] = upi_input_from_prompt()
 		[cmd, opts] = upi_parse_cmd( user_says );
 		
 		switch( cmd )
+			case 'beta' %get a beta for all the events
+				if isempty( opts )
+					disp( 'Error: beta requires one argument.' );
+				else
+					beta_0 = str2num( opts{1} );
+				end
 			case 'run' %reads a filename for the run
 				if isempty( opts )
 					disp( 'Error: run requires one argument.' );
 				else
 					run_file = opts{1};
+					beta_0 = 1;
 				end
 			case 'out' %sets an output file name
 				if isempty( opts )
