@@ -5,8 +5,8 @@ INCLUDE_D = $(PROGS_HOME)/include
 BIN_D = $(PROGS_HOME)/bin
 
 ROOT_LIBS = `root-config --libs`
-GEANT_LIBS = -lgeant321 -lPythia6 -lVMC -lEG
-FAIR_LIBS = -lBaseMQ -lBase -lEventDisplay -lfairmq_logger -lFairMQ -lFairMQTest -lFairRutherford -lFairTestDetector -lFairTools -lGeane -lGen -lGeoBase -lLmdMQSampler -lMbsAPI -lMCStack -lParBase -lParMQ -lPassive -lPixel -lTrkBase
+GEANT_LIBS = -lgeant321 -lPythia6 -lVMC -lEG -lgfortran
+FAIR_LIBS =  -lFairTools -lParBase -lBase
 R3B_LIBS = -lELILuMon -lField -lR3Bbase -lR3BData -lR3BCalifa -lR3BDch -lR3BdTof -lR3BEvtVis -lR3BFi4 -lR3BGen -lR3BGfi -lR3BLand -lR3BLos -lR3BMfi -lR3BmTof -lR3BNeuland -lR3BPassive -lR3BPlist -lR3BPsp -lR3BSTaRTra -lR3BTCal -lR3BTof -lR3BTra -lR3BXBall -ltimestitcher -lR3BMVPlanes
 ROOT_LIBS += $(FAIR_LIBS)
 ROOT_LIBS += $(R3B_LIBS)

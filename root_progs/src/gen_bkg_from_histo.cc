@@ -23,11 +23,13 @@ gen_bkg_hists *gen_bkg_histograms_alloc( gen_bkg_opts *go ){
 
 //deallocation
 void gen_bkg_histograms_free( gen_bkg_hists *hists ){
-	delete hists->h_int;
+	//NOTE: 18.08.2017: there seem to be some new "feature" in FairRoot
+	//      that causes these delete to be double-free's.
+	/*delete hists->h_int;
 	delete hists->h_dist;
 	delete hists->h_mult;
 	delete hists->h_mult_g;
-	delete hists->h_sim;
+	delete hists->h_sim;*/
 	
 	free( hists );
 }

@@ -303,7 +303,7 @@ ad_check_a_dir(){
 ad_wait_for_jobs(){
 	#at the end of things, wait for all the jobst to terminate
 	echo "Waiting for all the jobs to terminate... "
-	t_pids=$( pgrep -P $$ "$1" )
+	t_pids=$( pgrep -P $$  "$1" )
 	wait $t_pids
 	echo "All completed NOW: $(date +%T)."
 }
