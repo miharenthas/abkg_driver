@@ -59,25 +59,25 @@ function [ PDG, energy, solid_angle, event_specs, out_file ] = pfire_input_from_
 				if isempty( opts )
 					disp( 'pfire: syntax error: pdg requires one argument.' );
 				else
-					energy = str2num( opts{1} );
+					PDG.pdg = str2num( opts{1} );
 				end
 			case 'mass' %sets the invariant mass
 				if isempty( opts )
 					disp( 'pfire: syntax error: mass requires one argument.' );
 				else
-					energy = str2num( opts{1} );
+					PDG.mass = str2num( opts{1} );
 				end
 			case 'charge' %sets the charge (Z)
 				if isempty( opts )
 					disp( 'pfire: syntax error: charge requires one argument.' );
 				else
-					energy = str2num( opts{1} );
+					PDG.Z = str2num( opts{1} );
 				end
 			case 'A_nb' %sets the mass number (A)
 				if isempty( opts )
 					disp( 'pfire: syntax error: A_nb requires one argument.' );
 				else
-					energy = str2num( opts{1} );
+					PDG.A = str2num( opts{1} );
 				end
 			case 'sangle' %sets the solid angle where to fire
 				if numel( opts ) ~= 4

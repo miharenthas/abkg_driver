@@ -5,8 +5,8 @@
 %NOTE: units is GeV/c*
 
 function momenta = pfire_momenta( directions, PDG, energy )
-	mom_mod = sqrt( 2*energy*PDG.mass );
-	momenta = directions*mom_mod;
+	mom_mod = sqrt( energy^2 - PDG.mass^2 );
+	momenta = directions*mom_mod*1e-6;
 end
 
 %ridiculous function...
