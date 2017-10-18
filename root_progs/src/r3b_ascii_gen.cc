@@ -103,6 +103,8 @@ unsigned int r3b_ascii_gen::slurp( FILE *input_target, unsigned int so_many ){
 		fscanf( input_target, "%u\t%hu\t%f\t%f", &evt.eventId,
 		        &evt.nTracks, &evt.pBeam, &evt.b );
 		
+		if( feof( input_target ) ) break; //exit on feof, really
+		
 		if( _verbose ){
 			std::cout << "-I- R3BAsciiGenerator: Slurping Event: " << evt.eventId << ",  pBeam = "
 				        << evt.pBeam << "GeV, b = " << evt.b << " fm, multiplicity " << evt.nTracks
