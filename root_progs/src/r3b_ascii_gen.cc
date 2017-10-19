@@ -186,6 +186,16 @@ Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 			        << _event_buf.top().nTracks << std::endl;
 	}
 	
+	//do the bodgelogging
+	ascii_blog blog = {
+		_event_buf.top().eventId,
+		_event_buf.top().nTracks,
+		_event_buf.top().pBeam,
+		_event_buf.top().b
+	};
+	_boogie.clear_event_log();
+	_boogie.push_event_log( blog );
+	
 	//bloop bon bthe btracks
 	for( int t=0; t < _event_buf.top().nTracks; ++t ){
 		if( _event_buf.top().trk[t].iPid < 0 ){ //ion

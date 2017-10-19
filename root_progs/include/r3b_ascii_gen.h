@@ -29,6 +29,8 @@
 //includes from this toolkit
 #include "r3b_ascii_paged_stack.h" //a stack structure that pages itself to disk
 #include "r3b_ascii_event_structs.h" //the track and event data structures.
+#include "r3b_ascii_blog.h" //the bodgelogger entry and entry wrapper
+#include "r3b_ascii_bodgelogger.h" //the bodgelogger: injects the event header in the output
 
 //inclusions, all of them.
 #include "FairGenerator.h"
@@ -119,6 +121,8 @@ typedef class _r3b_ascii_generator_custom : public FairGenerator
 		//in this buffer we'll store the events from
 		//the input source.
 		r3b_ascii_paged_stack _event_buf;
+		bodgelogger _boogie; //the bodgelogger, to inject the even header
+		                     //in the output tree
 		
 		//ion map (not vital, and probably better to save the memory)
 		//but it provides an efficient way to search for keys
