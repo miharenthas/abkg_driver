@@ -181,7 +181,7 @@ Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 	if( _verbose ){
 		std::cout << "-I- R3BAsciiGenerator: Giving Event: "
 		          << _event_buf.top().eventId << ",  pBeam = "
-			        << _event_buf.top().pBeam << "GeV/c, b = "
+			        << _event_buf.top().pBeam << "GeV/c^2, b = "
 			        << _event_buf.top().b << " v/c, multiplicity "
 			        << _event_buf.top().nTracks << std::endl;
 	}
