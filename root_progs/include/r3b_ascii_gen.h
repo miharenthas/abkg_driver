@@ -31,6 +31,8 @@
 #include "r3b_ascii_event_structs.h" //the track and event data structures.
 #include "r3b_ascii_blog.h" //the bodgelogger entry and entry wrapper
 #include "r3b_ascii_bodgelogger.h" //the bodgelogger: injects the event header in the output
+                                   //it's included in R3BRoot but should be viewed as a parasitic
+                                   //plugin coming from this package
 
 //inclusions, all of them.
 #include "FairGenerator.h"

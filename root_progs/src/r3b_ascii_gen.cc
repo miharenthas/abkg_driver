@@ -181,13 +181,13 @@ Bool_t r3b_ascii_gen::ReadEvent( FairPrimaryGenerator *fpg ){
 	if( _verbose ){
 		std::cout << "-I- R3BAsciiGenerator: Giving Event: "
 		          << _event_buf.top().eventId << ",  pBeam = "
-			        << _event_buf.top().pBeam << "GeV, b = "
-			        << _event_buf.top().b << " fm, multiplicity "
+			        << _event_buf.top().pBeam << "GeV/c, b = "
+			        << _event_buf.top().b << " v/c, multiplicity "
 			        << _event_buf.top().nTracks << std::endl;
 	}
 	
 	//do the bodgelogging
-	ascii_blog blog = {
+	ascii_blog::entry blog = {
 		_event_buf.top().eventId,
 		_event_buf.top().nTracks,
 		_event_buf.top().pBeam,
