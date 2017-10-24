@@ -28,7 +28,7 @@ namespace p2a{
 	
 	//----------------------------------------------------------------------------
 	//a function to get N random number pairs
-	void get_alloc( gsl_vector *ranges, fromto &fromtos );
+	void get_ranges( gsl_vector *ranges, fromto &fromtos );
 	//NOTE: need to initialize random sequence separately (thread friendly)
 	void get_randpair( angpair &pair, gsl_vector *ranges, fromto &fromtos );
 	
