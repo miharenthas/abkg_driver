@@ -23,14 +23,14 @@ namespace p2a{
 	//----------------------------------------------------------------------------
 	//allocate and get a vector from an angle pair
 	gsl_vector *ang2dir( const angpair &pair ){
-		gls_vector *dir = gsl_vector_alloc( 3 );
+		gsl_vector *dir = gsl_vector_alloc( 3 );
 		
 		float x = sin( pair.theta )*cos( pair.phi );
 		float y = sin( pair.theta )*sin( pair.phi );
 		float z = cos( pair.theta );
 		
-		gls_vector_set( dir, 0, x );
-		gls_vector_set( dir, 1, y );
+		gsl_vector_set( dir, 0, x );
+		gsl_vector_set( dir, 1, y );
 		gsl_vector_set( dir, 2, y );
 		
 		return dir;

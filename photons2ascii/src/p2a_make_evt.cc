@@ -11,7 +11,7 @@ namespace p2a{
 	//make a track out of a photon
 	track photon2track( const gsl_vector *mom ){
 		track trk;
-		memset( trk, 0, sizeof( track ) );
+		memset( &trk, 0, sizeof( track ) );
 		
 		trk.iPid = 1; //it's a photon, no question about it.
 		trk.iA = 22; //and it's that in R3BRoot.
@@ -19,7 +19,7 @@ namespace p2a{
 		trk.py = gsl_vector_get( mom, 1 );
 		trk.pz = gsl_vector_get( mom, 2 );
 		
-		return track;
+		return trk;
 	}
 	
 	//----------------------------------------------------------------------------
@@ -31,15 +31,11 @@ namespace p2a{
 	
 	//----------------------------------------------------------------------------
 	//produce the event header
-	void make_event_header( event &evt, float beam_A, float beam_Z, float beam_nrg ){
-	        
-	        float rest_m = beam_Z*__proton_mass + ( beam_A - beam_Z )*__neutron_mass;
-		float e = beam_nrg + rest_m;
-		float p = sqrt( e*e - pow( rest_m, 2 ) );
-		float beta = p/e;
+	void make_event_hdr( event &evt, float beam_A, float beam_Z, float beam_nrg ){
+		float beta = beam2beta( beam_nrg, beam_A, beam_Z );
 		
 		evt.eventId = ++the_event_ID::_id;
-		evt.pBeam = p;
+		evt.pBeam = beam2p( beam_nrg, beam_A, beam_Z );
 		evt.b = beta;
 	}
 	

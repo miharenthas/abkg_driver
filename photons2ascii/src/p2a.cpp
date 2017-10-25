@@ -5,6 +5,8 @@
 #include <string.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include <algorithm>
 
@@ -39,6 +41,7 @@ void photons_realloc( struct photons *pht, const unsigned nb ){
 void photons_free( struct photons *pht ){ free( pht->p ); };
 
 //and a structure to pass in a thread, with pointers to the buffers
+//and all sort of goodies, like all the relevant optionZ.
 //since this will be passed as a reference, I can later tamper with
 //the read and write buffers to move them around where I need them
 struct tmessage{
@@ -47,6 +50,12 @@ struct tmessage{
 	struct photons *pht_buf; //read buffer -- this will be swapped
 	unsigned pht_buf_sz; //its size
 	bool worker_go_on;
+	float beam_a;
+	float beam_z;
+	float beam_energy; //AMeV
+	float beam_sigma;
+	gsl_vector *beam_dir;
+	p2a::fromto ft;
 };
 
 //------------------------------------------------------------------------------------
@@ -71,15 +80,17 @@ int main( int argc char **argv ){
 		} else break;
 	}
 	
-	float beam_a = 132;
-	float beam_z = 50;
-	float beam_energy = 490; //AMeV
-	float beam_sigma = 0;
-	gsl_vector *beam_dir = gsl_vector_alloc( 3 );
-	gsl_vector_set( beam_dir, 0, 0 );
-	gsl_vector_set( beam_dir, 1, 0 );
-	gsl_vector_set( beam_dir, 3, 1 ); //Z is the default direction.
-	p2a::fromto ft = { 0, 2*__pi, 0, __pi };
+	struct tmessage msg;
+	
+	msg.beam_a = 132;
+	msg.beam_z = 50;
+	msg.beam_energy = 490; //AMeV
+	msg.beam_sigma = 0;
+	msg.beam_dir = gsl_vector_alloc( 3 );
+	gsl_vector_set( msg.beam_dir, 0, 0 );
+	gsl_vector_set( msg.beam_dir, 1, 0 );
+	gsl_vector_set( msg.beam_dir, 3, 1 ); //Z is the default direction.
+	msg.ft = { 0, 2*__pi, 0, __pi };
 
 	struct option opts[] = {
 		{ "verbose", no_argument, &flagger, flagger | VERBOSE },
@@ -109,30 +120,31 @@ int main( int argc char **argv ){
 				strcpy( out_fname, optarg );
 				break;
 			case 'A' :
-				beam_a = atof( optarg );
+				msg.beam_a = atof( optarg );
 				break;
 			case 'Z' :
-				beam_z = atof( optarg );
+				msg.beam_z = atof( optarg );
 				break;
 			case 'e' :
-				beam_energy = atof( optarg );
+				msg.beam_energy = atof( optarg );
 				break;
 			case 'd' :
 				sscanf( optarg, "[%f,%f,%f]",
-				        beam_dir->data[0],
-				        beam_dir->data[1],
-				        beam_dir->data[2] );
+				        msg.beam_dir->data[0],
+				        msg.beam_dir->data[1],
+				        msg.beam_dir->data[2] );
 				break;
 			case 'a' :
 				sscanf( optarg, "from[%f,%f]to[%f,%f]",
-					ft.th_from, ft.th_to,
-					ft.ph_from, ft.ph_to );
-				float *ft_ptr = &ft.th_from;
+					msg.ft.th_from, msg.ft.th_to,
+					msg.ft.ph_from, msg.ft.ph_to );
+				float *ft_ptr = &msg.ft.th_from;
 				for( int i=0; i < 4; ++i ) ft_ptr[i] *= __pi/180;
 				break;
 			case 'g' :
 				flagger |= GESPREAD;
-				beam_sigma = atof( optarg );
+				msg.beam_sigma = atof( optarg );
+				fprintf( stderr, "warning: -g option has no effect, yet.\n" );
 				break;
 		}
 	}
@@ -150,16 +162,18 @@ int main( int argc char **argv ){
 	
 	//let's do walking processing, just because
 	FILE *instream = NULL;
-	struct tmessage msg;
 	if( flagger & TO_FILE ) outstream = fopen( out_fname, "w" );
 	else outstream = stdout;
+	unsigned nb_proc = 0;
+	srand( time(NULL) ); //init the random number generator.
 	if( flagger & FROM_FILE ){
 		for( int f=0; f < in_fcount; ++f ){
 			insteam = fopen( in_fname[f], "r" );
-			if( instream && outstream ) msg = process( outstream, instream );
+			if( instream && outstream )
+				nb_proc += process( outstream, instream, &msg );
 			else exit( 42 );
 		}
-	} else msg = process( outstream, stdin );
+	} else nb_proc = process( outstream, stdin );
 			
 	return 0;
 }
@@ -170,12 +184,16 @@ int main( int argc char **argv ){
 //pass it to the worker thread for processing
 //swap buffers
 //repeat until no events are read-able
-unsigned process( FILE *out, FILE *in ){
+unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 	//buffers: front and back and event
 	struct photon pbuf_A[PHOTON_BUNCH_SZ], *pbuf_front = pbuf_A;
 	struct photon pbuf_B[PHOTON_BUNCH_SZ], *pbuf_back = pbuf_B;
 	
-	struct tmessage msg = { NULL, 0, pbuf_front, PHOTON_BUNCH_SZ, true };
+	msg->evt_buf = NULL;
+	msg->evt_buf_sz = 0;
+	msg->pht_buf = pbuf_front;
+	msg->pht_buf_sz = PHOTON_BUNCH_SZ;
+	msg->worker_go_on = true;
 	
 	//lock-read
 	//start worker thread
@@ -209,8 +227,48 @@ unsigned process( FILE *out, FILE *in ){
 //worker thread
 void *make_events( void *the_msg ){
 	struct tmessage *msg = (struct tmessage*)the_msg;
+	gsl_vector *dir = gsl_vector_alloc( 3 ), *mom = gsl_vector_alloc( 3 );
+	p2a::angpair pair;
+	
+	
+	gsl_vector *ranges = gsl_vector_alloc( 4 );
+	p2a::get_ranges( ranges, msg->ft );
+	
+	float boost_e;
 	
 	while( msg->worker_go_on ){
+		//lock-read //lock-write
+		msg->evt_buf = (p2s::event*)realloc( msg->evt_buf,
+			sizeof(p2a::event)*(msg->evt_buf_sz+msg->pht_buf_sz) );
+		
+		#pragma omp parallel for private( pair, dir, boost_e )
+		for( int i=0; i < msg->pht_buf_sz; ++i ){
+			//prepare the event
+			msg->evt_buf[i].trk = std::vector<p2a::track>( msg->pht_buf[i]->nb );
+			msg->evt_buf[i].nTracks = msg->pht_buf[i]->nb;
+			p2a::make_event_hdr( msg->evt_buf[i],
+			                     msg->beam_a,
+			                     msg->beam_z,
+			                     msg->beam_e );
+			
+			//do the photonZ
+			for( int j=0; j < msg->pht_buf[i]->nb; ++j ){
+				p2a::get_randpair( pair, ranges, msg->ft );
+				p2a::get_randdir( dir, pair );
+				boost_e = p2a::get_dboost( msg->,
+					                   p2a::beam2beta( msg->beam_e,
+					                                   msg->beam_a,
+					                                   msg->beam_z ),
+					                   pair, msg->beam_dir );
+				p2a::get_momentum( mom, dir, boost_e );
+				msg->evt[i].trk[j] = p2a::photon2track( mom );
+			}
+		}
+		//unlock-write //unlock-read
+	}
+	
+	//pthread_exit( NULL )
+}
 		
 
 //------------------------------------------------------------------------------------

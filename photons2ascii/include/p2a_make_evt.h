@@ -10,21 +10,16 @@
 
 #include <vector>
 
+#include "p2a_dboost.h"
+
+#ifndef __proton_mass
 #define __proton_mass 0.9382720814 //GeV/c^2
+#endif
+#ifndef __neutron_mass
 #define __neutron_mass 0.9395654135 //GeV/c^2
+#endif
 
 namespace p2a{
-	//----------------------------------------------------------------------------
-	//a class to keep track of the event ID
-	class the_event_ID{
-		private:
-			static unsigned _id;
-		public:
-			static void init( unsigned id=0 ){ _id = id; };
-			friend void make_event_hdr( event &evt, float beam_A,
-			                            float beam_Z, float beam_nrg );
-	};
-	
 	//----------------------------------------------------------------------------
 	//NOTE: these two structures are a copy from
 	//      $ABKG_HOME/root_progs/include/r3b_ascii_event_structs.h
@@ -54,6 +49,17 @@ namespace p2a{
 	} event;
 	//Memory needed for each event: 14+35*nTracks+24 B
 	//for a 32 track event: 1158B --> each GiB of memory will hold 927238 32track events.
+	
+	//----------------------------------------------------------------------------
+	//a class to keep track of the event ID
+	class the_event_ID{
+		private:
+			static unsigned _id;
+		public:
+			static void init( unsigned id=0 ){ _id = id; };
+			friend void make_event_hdr( event &evt, float beam_A,
+			                            float beam_Z, float beam_nrg );
+	};
 	
 	//----------------------------------------------------------------------------
 	//functions to make a track out of a momentum,
