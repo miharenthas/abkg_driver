@@ -6,12 +6,14 @@ include_d = $(progs_home)/include
 bin_d = $(progs_home)/bin
 lib_d = $(progs_home)/lib
 
-cxx_flags = -lgsl -lm -lcblas -ggdb -pthread -fopenmp -I $(include_d) -Wno-narrowing
+cxx_flags = -std=c++11 -lgsl -lgslcblas -lm -ggdb -pthread -fopenmp -I $(include_d) -Wno-narrowing
 
 objects = p2a_angtools p2a_gen_angdist p2a_gen_momenta p2a_dboost p2a_make_evt
-libs = libp2a.a
+libs = libp2a
+programs = p2a
 
-ofiles = $(bin_d)/p2a_angtools.o $(bin_d)/p2a_gen_angdist.o $(bin_d)/p2a_gen_momenta.o $(bin_d)/p2a_dboost.o 4(bin_d)/p2a_make_evt.o $(lib_d)/libp2a.a
+ofiles = $(bin_d)/p2a_angtools.o $(bin_d)/p2a_gen_angdist.o $(bin_d)/p2a_gen_momenta.o $(bin_d)/p2a_dboost.o $(bin_d)/p2a_make_evt.o
+afiles = $(lib_d)/libp2a.so
 
 CXX = g++ #fix it, we don't want clang
 
@@ -40,4 +42,14 @@ p2a_dboost :
 
 p2a_make_evt :
 	$(CXX) $(src_d)/p2a_make_evt.cc $(cxx_flags) -fPIC -c -o $(bin_d)/p2a_make_evt.o
+	
+#-------------------------------------------------------------------------------------
+#libs
+libp2a :
+	$(CXX) $(ofiles) -shared -o $(lib_d)/libp2a.so
+	
+#-------------------------------------------------------------------------------------
+#program
+p2a : $(libs)
+	$(CXX) $(src_d)/p2a.cpp $(cxx_flags) -L $(lib_d) -lp2a -o p2a
 

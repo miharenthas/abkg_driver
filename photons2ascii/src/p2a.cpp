@@ -63,14 +63,14 @@ struct tmessage{
 //fills an already allocated buffer with nb events
 unsigned fill_photon_buffer( struct photons *pbuf, FILE *stream, unsigned nb );
 //the processor of a stream
-unsigned process( FILE *out, FILE *in );
+unsigned process( FILE *out, FILE *in, struct tmessage *msg );
 //worker thread routine
 void *make_events( void *the_tmessage );
 
-int main( int argc char **argv ){
-	int flagger = 0;
+int main( int argc, char **argv ){
+	int flagger = 0, in_fcount=0;
 	char in_fname[64][256];
-	chat out_fname[256];
+	char out_fname[256];
 	
 	for( int i=1; i < argc && i < 64; ++i ){
 		if( argv[i][0] != '-' ){
@@ -105,7 +105,7 @@ int main( int argc char **argv ){
 		{ NULL, 0, NULL, 0 }
 	};
 	
-	char iota = 0; int idx;
+	char iota = 0; int idx; float *ft_ptr;
 	while( (iota = getopt_long( argc, argv, "vA:Z:e:d:a:g:i:o:", opts, &idx )) != -1 ){
 		switch( iota ){
 			case 'v' :
@@ -138,13 +138,13 @@ int main( int argc char **argv ){
 				sscanf( optarg, "from[%f,%f]to[%f,%f]",
 					msg.ft.th_from, msg.ft.th_to,
 					msg.ft.ph_from, msg.ft.ph_to );
-				float *ft_ptr = &msg.ft.th_from;
+				ft_ptr = &msg.ft.th_from;
 				for( int i=0; i < 4; ++i ) ft_ptr[i] *= __pi/180;
 				break;
 			case 'g' :
 				flagger |= GESPREAD;
 				msg.beam_sigma = atof( optarg );
-				fprintf( stderr, "warning: -g option has no effect, yet.\n" );
+				fprintf( stderr, "p2a: warning: -g option has no effect, yet.\n" );
 				break;
 		}
 	}
@@ -153,27 +153,27 @@ int main( int argc char **argv ){
 	if( flagger & VERBOSE ){
 		puts( "*** Welcome in p2a, photons to ASCII events! ***" );
 		puts( "Settings:" );
-		printf( "\tbeam A: %f AMU\n", beam_a );
-		printf( "\tbeam Z: %f AMU\n", beam_z );
-		printf( "\tbeam energy: %f AMeV\n", beam_energy );
-		printf( "\tbeam versor: [%f,%f,%f]\n", beam_dir->data[0],
-		        beam_dir->data[1], beam_dir->data[2] );
+		printf( "\tbeam A: %f AMU\n", msg.beam_a );
+		printf( "\tbeam Z: %f AMU\n", msg.beam_z );
+		printf( "\tbeam energy: %f AMeV\n", msg.beam_energy );
+		printf( "\tbeam versor: [%f,%f,%f]\n", msg.beam_dir->data[0],
+		        msg.beam_dir->data[1], msg.beam_dir->data[2] );
 	}
 	
 	//let's do walking processing, just because
-	FILE *instream = NULL;
+	FILE *instream = NULL, *outstream=NULL;
 	if( flagger & TO_FILE ) outstream = fopen( out_fname, "w" );
 	else outstream = stdout;
 	unsigned nb_proc = 0;
 	srand( time(NULL) ); //init the random number generator.
 	if( flagger & FROM_FILE ){
 		for( int f=0; f < in_fcount; ++f ){
-			insteam = fopen( in_fname[f], "r" );
+			instream = fopen( in_fname[f], "r" );
 			if( instream && outstream )
 				nb_proc += process( outstream, instream, &msg );
 			else exit( 42 );
 		}
-	} else nb_proc = process( outstream, stdin );
+	} else nb_proc = process( outstream, stdin, &msg );
 			
 	return 0;
 }
@@ -186,8 +186,8 @@ int main( int argc char **argv ){
 //repeat until no events are read-able
 unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 	//buffers: front and back and event
-	struct photon pbuf_A[PHOTON_BUNCH_SZ], *pbuf_front = pbuf_A;
-	struct photon pbuf_B[PHOTON_BUNCH_SZ], *pbuf_back = pbuf_B;
+	struct photons pbuf_A[PHOTON_BUNCH_SZ], *pbuf_front = pbuf_A;
+	struct photons pbuf_B[PHOTON_BUNCH_SZ], *pbuf_back = pbuf_B;
 	
 	msg->evt_buf = NULL;
 	msg->evt_buf_sz = 0;
@@ -199,7 +199,7 @@ unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 	//start worker thread
 	
 	unsigned nb_read=0, nb_total=0;
-	nb_read = fill_photon_buffer( pbuf_front, in, PHOTON_BUNCH_SZ );
+	nb_read = fill_photon_buffer( pbuf_back, in, PHOTON_BUNCH_SZ );
 	//unlock-read
 	while( nb_read ){
 		nb_total += nb_read;
@@ -207,22 +207,24 @@ unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 		//buffer swap
 		//lock-read
 		std::swap( pbuf_front, pbuf_back );
-		msg.pht_buf = pbuf_front;
-		msg.pht_buf_sz = nb_read;
+		msg->pht_buf = pbuf_front;
+		msg->pht_buf_sz = nb_read;
 		//unlock-read
 		
+		make_events( msg );
+		
 		//lock-write
-		for( int i=0; i < msg.evt_buf_sz; ++i )
-			p2a::put_event( out, msg.evt_buf[i] );
+		for( int i=0; i < msg->evt_buf_sz; ++i )
+			p2a::put_event( out, msg->evt_buf[i] );
 		//unlock-write
 		
 		nb_read = fill_photon_buffer( pbuf_back, in, PHOTON_BUNCH_SZ );
 	}
-	msg.worker_go_on = false;
+	msg->worker_go_on = false;
 	
 	return nb_total;
 }
-
+/*
 //------------------------------------------------------------------------------------
 //worker thread
 void *make_events( void *the_msg ){
@@ -268,8 +270,8 @@ void *make_events( void *the_msg ){
 	}
 	
 	//pthread_exit( NULL )
+	return NULL;
 }
-		
 
 //------------------------------------------------------------------------------------
 //fill the photon buffer
@@ -301,4 +303,4 @@ unsigned fill_photon_buffer( struct photons *pbuf, FILE *stream, unsigned nb ){
 	}
 	
 	return read;
-}
+}*/
