@@ -52,7 +52,7 @@ struct tmessage{
 	bool worker_go_on;
 	float beam_a;
 	float beam_z;
-	float beam_energy; //AMeV
+	float beam_e; //AMeV
 	float beam_sigma;
 	gsl_vector *beam_dir;
 	p2a::fromto ft;
@@ -74,7 +74,7 @@ int main( int argc, char **argv ){
 	
 	for( int i=1; i < argc && i < 64; ++i ){
 		if( argv[i][0] != '-' ){
-			strcpy( in_fname[i], argv[i] );
+			strcpy( in_fname[in_fcount], argv[i] );
 			++in_fcount;
 			flagger |= FROM_FILE;
 		} else break;
@@ -84,12 +84,12 @@ int main( int argc, char **argv ){
 	
 	msg.beam_a = 132;
 	msg.beam_z = 50;
-	msg.beam_energy = 490; //AMeV
+	msg.beam_e = 0.490; //AMeV
 	msg.beam_sigma = 0;
 	msg.beam_dir = gsl_vector_alloc( 3 );
 	gsl_vector_set( msg.beam_dir, 0, 0 );
 	gsl_vector_set( msg.beam_dir, 1, 0 );
-	gsl_vector_set( msg.beam_dir, 3, 1 ); //Z is the default direction.
+	gsl_vector_set( msg.beam_dir, 2, 1 ); //Z is the default direction.
 	msg.ft = { 0, 2*__pi, 0, __pi };
 
 	struct option opts[] = {
@@ -114,6 +114,7 @@ int main( int argc, char **argv ){
 			case 'i' :
 				in_fcount = 1;
 				strcpy( in_fname[0], optarg );
+				flagger |= FROM_FILE;
 				break;
 			case 'o' :
 				flagger |= TO_FILE;
@@ -126,7 +127,7 @@ int main( int argc, char **argv ){
 				msg.beam_z = atof( optarg );
 				break;
 			case 'e' :
-				msg.beam_energy = atof( optarg );
+				msg.beam_e = atof( optarg );
 				break;
 			case 'd' :
 				sscanf( optarg, "[%f,%f,%f]",
@@ -149,32 +150,40 @@ int main( int argc, char **argv ){
 		}
 	}
 	
+	//fast calculate the total beam energy
+	msg.beam_e *= msg.beam_a;
+	
 	//standard greetings and settings exhibition
 	if( flagger & VERBOSE ){
 		puts( "*** Welcome in p2a, photons to ASCII events! ***" );
 		puts( "Settings:" );
 		printf( "\tbeam A: %f AMU\n", msg.beam_a );
 		printf( "\tbeam Z: %f AMU\n", msg.beam_z );
-		printf( "\tbeam energy: %f AMeV\n", msg.beam_energy );
+		printf( "\tbeam energy: %f AGeV\n", msg.beam_e/msg.beam_a );
 		printf( "\tbeam versor: [%f,%f,%f]\n", msg.beam_dir->data[0],
 		        msg.beam_dir->data[1], msg.beam_dir->data[2] );
 	}
 	
 	//let's do walking processing, just because
 	FILE *instream = NULL, *outstream=NULL;
+	if( flagger & VERBOSE ) puts( "Processing..." );
 	if( flagger & TO_FILE ) outstream = fopen( out_fname, "w" );
 	else outstream = stdout;
+	if( !outstream ) exit( 41 );
 	unsigned nb_proc = 0;
 	srand( time(NULL) ); //init the random number generator.
 	if( flagger & FROM_FILE ){
 		for( int f=0; f < in_fcount; ++f ){
 			instream = fopen( in_fname[f], "r" );
-			if( instream && outstream )
-				nb_proc += process( outstream, instream, &msg );
-			else exit( 42 );
+			if( !instream ) exit( 42 );
+			if( flagger & VERBOSE )
+				printf( "Reading file %s.\n", in_fname[f] );
+			nb_proc += process( outstream, instream, &msg );
 		}
 	} else nb_proc = process( outstream, stdin, &msg );
-			
+	if( flagger & VERBOSE ) printf( "Events read: %d.\n", nb_proc );
+	
+	if( flagger & VERBOSE ) puts( "*** Done, goodbye. ***" );	
 	return 0;
 }
 
@@ -186,8 +195,10 @@ int main( int argc, char **argv ){
 //repeat until no events are read-able
 unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 	//buffers: front and back and event
-	struct photons pbuf_A[PHOTON_BUNCH_SZ], *pbuf_front = pbuf_A;
-	struct photons pbuf_B[PHOTON_BUNCH_SZ], *pbuf_back = pbuf_B;
+	struct photons *pbuf_front =
+		(struct photons*)calloc( sizeof(struct photons), PHOTON_BUNCH_SZ );
+	struct photons *pbuf_back =
+		(struct photons*)calloc( sizeof(struct photons), PHOTON_BUNCH_SZ );
 	
 	msg->evt_buf = NULL;
 	msg->evt_buf_sz = 0;
@@ -222,14 +233,17 @@ unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 	}
 	msg->worker_go_on = false;
 	
+	free( pbuf_front );
+	free( pbuf_back );
+	
 	return nb_total;
 }
-/*
+
 //------------------------------------------------------------------------------------
 //worker thread
 void *make_events( void *the_msg ){
 	struct tmessage *msg = (struct tmessage*)the_msg;
-	gsl_vector *dir = gsl_vector_alloc( 3 ), *mom = gsl_vector_alloc( 3 );
+	gsl_vector *dir, *mom;
 	p2a::angpair pair;
 	
 	
@@ -238,36 +252,46 @@ void *make_events( void *the_msg ){
 	
 	float boost_e;
 	
-	while( msg->worker_go_on ){
+	//NOTE: the while loop is effectively something needed by the pthreaded app
+	//while( msg->worker_go_on ){
 		//lock-read //lock-write
-		msg->evt_buf = (p2s::event*)realloc( msg->evt_buf,
+		msg->evt_buf = (p2a::event*)realloc( msg->evt_buf,
 			sizeof(p2a::event)*(msg->evt_buf_sz+msg->pht_buf_sz) );
+		msg->evt_buf_sz = msg->evt_buf_sz+msg->pht_buf_sz;
 		
-		#pragma omp parallel for private( pair, dir, boost_e )
+		#pragma omp parallel private( pair, dir, mom, boost_e )
+		{
+		dir = gsl_vector_alloc( 3 );
+		mom = gsl_vector_alloc( 3 );
+		#pragma omp for
 		for( int i=0; i < msg->pht_buf_sz; ++i ){
 			//prepare the event
-			msg->evt_buf[i].trk = std::vector<p2a::track>( msg->pht_buf[i]->nb );
-			msg->evt_buf[i].nTracks = msg->pht_buf[i]->nb;
+			msg->evt_buf[i].trk = std::vector<p2a::track>( msg->pht_buf[i].nb );
+			msg->evt_buf[i].nTracks = msg->pht_buf[i].nb;
 			p2a::make_event_hdr( msg->evt_buf[i],
 			                     msg->beam_a,
 			                     msg->beam_z,
 			                     msg->beam_e );
 			
 			//do the photonZ
-			for( int j=0; j < msg->pht_buf[i]->nb; ++j ){
+			for( int j=0; j < msg->pht_buf[i].nb; ++j ){
 				p2a::get_randpair( pair, ranges, msg->ft );
 				p2a::get_randdir( dir, pair );
-				boost_e = p2a::get_dboost( msg->,
+				boost_e = p2a::get_dboost( msg->pht_buf[i].p[j],
 					                   p2a::beam2beta( msg->beam_e,
 					                                   msg->beam_a,
 					                                   msg->beam_z ),
 					                   pair, msg->beam_dir );
+				
 				p2a::get_momentum( mom, dir, boost_e );
-				msg->evt[i].trk[j] = p2a::photon2track( mom );
+				msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
 			}
 		}
+		gsl_vector_free( dir );
+		gsl_vector_free( mom );
+		} //end of parallel pragma
 		//unlock-write //unlock-read
-	}
+	//}
 	
 	//pthread_exit( NULL )
 	return NULL;
@@ -285,22 +309,22 @@ unsigned fill_photon_buffer( struct photons *pbuf, FILE *stream, unsigned nb ){
 		if( feof( stream ) ) break;
 		
 		pnb=8;
-		photon_alloc( &pbuf[i], pnb );
+		photons_realloc( &pbuf[i], pnb );
 		
 		phot = strtok( line, "," );
 		pcount = 0;
 		while( phot ){
-			pbuf[i].p[pcount] = atof( phot );
+			pbuf[i].p[pcount] = atof( phot )/1000; //MeV to GeV
 			phot = strtok( NULL, "," );
 			++pcount;
-			if( pcount >= pnb ){
+			if( pcount >= pnb-1 ){
 				pnb *= 2;
-				photon_realloc( &pbuf[i], pnb );
+				photons_realloc( &pbuf[i], pnb );
 			}
 		}
-		photon_realloc( &pbuf[i], pcount+1 );
+		photons_realloc( &pbuf[i], pcount+1 );
 		++read;
 	}
 	
 	return read;
-}*/
+}

@@ -13,18 +13,18 @@ libs = libp2a
 programs = p2a
 
 ofiles = $(bin_d)/p2a_angtools.o $(bin_d)/p2a_gen_angdist.o $(bin_d)/p2a_gen_momenta.o $(bin_d)/p2a_dboost.o $(bin_d)/p2a_make_evt.o
-afiles = $(lib_d)/libp2a.so
+sofiles = $(lib_d)/libp2a.so
 
 CXX = g++ #fix it, we don't want clang
 
 #-------------------------------------------------------------------------------------
 #phony
 .PHONY: all
-all: $(objects)
+all: $(objects) $(libs) $(programs)
 
 .PHONY: clean
 clean:
-	rm -rf $(ofiles)
+	rm -rf $(ofiles) $(sofiles) $(programs)
 
 #-------------------------------------------------------------------------------------
 #objects
