@@ -7,7 +7,7 @@ namespace p2a{
 	//the doppler booster itself
 	float get_dboost( float e, float beta, const angpair &pair, const gsl_vector *beam_d ){
 		angpair bang = dir2ang( beam_d );
-		get_dboost( e, beta, pair, bang );
+		return get_dboost( e, beta, pair, bang );
 	}
 	
 	float get_dboost( float e, float beta, const angpair &pang, const angpair &bang ){
@@ -17,6 +17,42 @@ namespace p2a{
 		float sni = sin( inclination );
 		
 		return e/( gamma*( 1 - beta*sni ) );
+	}
+	
+	//----------------------------------------------------------------------------
+	//the angle deviation
+	angpair get_dangle( float beta, const angpair &pair, const gsl_vector *beam_d ){
+		angpair bang = dir2ang( beam_d );
+		return get_dangle( beta, pair, bang );
+	}
+	
+	angpiar get_dangel( float beta, const angpair &pang, const angpair &bang ){
+		float inclination = gcdist( pang, bang );
+		angpair delta = { bang.theta - pang.theta, bang.phi - pang.phi };
+		float inc_o = (cos( inclination ) - beta)/(1- beta*cos( inclination ));
+		
+		gsl_vector *pdir = ang2dir( pang );
+		gsl_vector *bdir = ang2dir( bang );
+		gsl_vector *x = gsl_vector_alloc( 3 );
+		
+		//solve the system:
+		//cos( inc_o ) = < x, bdir >
+		//x = u*pdir + v*bdir
+		//|x| = 1
+		float C = cos( inc_o );
+		double pb; gls_blas_ddot( pdir, bdir, pb );
+		float m = C + pb;
+		float A = pb*m;
+		float K = pow( m, 2 ) - 1;
+		float u = (A + sqrt( pow( A, 2 ) + 4*K ))/2;
+		float v = m*u;
+		
+		gsl_blas_dscal( u, pdir );
+		gsl_blas_dscal( v, bdir );
+		gsl_blas_dcpy( pdir, x );
+		gsl_blas_daxpy( 1, bdir, x );
+		
+		return dir2ang( x );
 	}
 	
 	//----------------------------------------------------------------------------
