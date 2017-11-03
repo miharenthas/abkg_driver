@@ -19,4 +19,11 @@ namespace p2a{
 		mom->data[1] = e*dir->data[1];
 		mom->data[2] = e*dir->data[2];
 	}
+	
+	//----------------------------------------------------------------------------
+	//less banal function to get an energy from a distribution
+	float get_rande( float e, float sigma, gsl_rng *rng ){
+		float dev = gsl_ran_gaussian( rng, sigma );
+		return e + dev;
+	}
 }

@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
+#include <omp.h>
 
 #include <algorithm>
 
@@ -18,7 +19,7 @@
 
 #define VERBOSE 0x01
 #define FROM_FILE 0x02
-#define TO_FILE 0X03
+#define TO_FILE 0X04
 #define GESPREAD 0x10
 
 #define PHOTON_BUNCH_SZ 4096
@@ -240,12 +241,15 @@ unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 }
 
 //------------------------------------------------------------------------------------
-//worker thread
+//worker
+//NOTE: this has been though as a thread thing, but I can't be bothered yet
+//      some notes on how the thing should be handled are already in the code
+//      leaving them inside, waiting for the will to implement them.
 void *make_events( void *the_msg ){
 	struct tmessage *msg = (struct tmessage*)the_msg;
 	gsl_vector *dir, *mom;
 	p2a::angpair pair;
-	
+	gsl_rng *rng;
 	
 	gsl_vector *ranges = gsl_vector_alloc( 4 );
 	p2a::get_ranges( ranges, msg->ft );
@@ -254,43 +258,52 @@ void *make_events( void *the_msg ){
 	
 	//NOTE: the while loop is effectively something needed by the pthreaded app
 	//while( msg->worker_go_on ){
-		//lock-read //lock-write
-		msg->evt_buf = (p2a::event*)realloc( msg->evt_buf,
-			sizeof(p2a::event)*(msg->evt_buf_sz+msg->pht_buf_sz) );
-		msg->evt_buf_sz = msg->evt_buf_sz+msg->pht_buf_sz;
+	//lock-read //lock-write
+	msg->evt_buf = (p2a::event*)realloc( msg->evt_buf,
+		sizeof(p2a::event)*(msg->pht_buf_sz) );
+	msg->evt_buf_sz = msg->pht_buf_sz;
+	
+	//init a unforum pseudorandom distro
+	srand( time(NULL) );
+	
+	#pragma omp parallel private( pair, dir, mom, boost_e, rng )
+	{
+	rng = gsl_rng_alloc( gsl_rng_default );
+	gsl_rng_set( rng, rand() + omp_get_thread_num() );
+	dir = gsl_vector_alloc( 3 );
+	mom = gsl_vector_alloc( 3 );
+	#pragma omp for
+	for( int i=0; i < msg->pht_buf_sz; ++i ){
+		//prepare the event
+		msg->evt_buf[i].trk = std::vector<p2a::track>( msg->pht_buf[i].nb );
+		msg->evt_buf[i].nTracks = msg->pht_buf[i].nb;
+		p2a::make_event_hdr( msg->evt_buf[i],
+		                     msg->beam_a,
+		                     msg->beam_z,
+		                     msg->beam_e );
 		
-		#pragma omp parallel private( pair, dir, mom, boost_e )
-		{
-		dir = gsl_vector_alloc( 3 );
-		mom = gsl_vector_alloc( 3 );
-		#pragma omp for
-		for( int i=0; i < msg->pht_buf_sz; ++i ){
-			//prepare the event
-			msg->evt_buf[i].trk = std::vector<p2a::track>( msg->pht_buf[i].nb );
-			msg->evt_buf[i].nTracks = msg->pht_buf[i].nb;
-			p2a::make_event_hdr( msg->evt_buf[i],
-			                     msg->beam_a,
-			                     msg->beam_z,
-			                     msg->beam_e );
+		//do the photonZ
+		for( int j=0; j < msg->pht_buf[i].nb; ++j ){
+			p2a::get_randpair( pair, ranges, msg->ft );
+			p2a::get_randdir( dir, pair );
+			if( msg->beam_sigma )
+				boost_e = p2a::get_rande( msg->beam_e, msg->beam_sigma, rng );
+			else boost_e = msg->beam_e;
+			boost_e = p2a::get_dboost( msg->pht_buf[i].p[j],
+				                   p2a::beam2beta( boost_e,
+				                                   msg->beam_a,
+				                                   msg->beam_z ),
+				                   pair, msg->beam_dir );
 			
-			//do the photonZ
-			for( int j=0; j < msg->pht_buf[i].nb; ++j ){
-				p2a::get_randpair( pair, ranges, msg->ft );
-				p2a::get_randdir( dir, pair );
-				boost_e = p2a::get_dboost( msg->pht_buf[i].p[j],
-					                   p2a::beam2beta( msg->beam_e,
-					                                   msg->beam_a,
-					                                   msg->beam_z ),
-					                   pair, msg->beam_dir );
-				
-				p2a::get_momentum( mom, dir, boost_e );
-				msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
-			}
+			p2a::get_momentum( mom, dir, boost_e );
+			msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
 		}
-		gsl_vector_free( dir );
-		gsl_vector_free( mom );
-		} //end of parallel pragma
-		//unlock-write //unlock-read
+	}
+	gsl_vector_free( dir );
+	gsl_vector_free( mom );
+	gsl_rng_free( rng );
+	} //end of parallel pragma
+	//unlock-write //unlock-read
 	//}
 	
 	//pthread_exit( NULL )
