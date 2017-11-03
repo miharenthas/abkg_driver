@@ -23,6 +23,10 @@ namespace p2a{
 	float get_dboost( float e, float beta, const angpair &pair, const gsl_vector *beam_d );
 	float get_dboost( float e, float beta, const angpair &pang, const angpair &bang );
 	
+	//boost the emission angle
+	angpair get_dangle( float beta, const angpair &pair, const gsl_vector *beam_d );
+	angpair get_dangle( float beta, const angpair &pang, const anpair &bang );
+	
 	//and a tool that is handy
 	float beam2p( float beam_e, float beam_a, float beam_z );
 	float beam2beta( float beam_e, float beam_a, float beam_z );
