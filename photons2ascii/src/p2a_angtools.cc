@@ -31,7 +31,7 @@ namespace p2a{
 		
 		gsl_vector_set( dir, 0, x );
 		gsl_vector_set( dir, 1, y );
-		gsl_vector_set( dir, 2, y );
+		gsl_vector_set( dir, 2, z );
 		
 		return dir;
 	}
@@ -44,7 +44,7 @@ namespace p2a{
 		float x = gsl_vector_get( dir, 0 );
 		float y = gsl_vector_get( dir, 1 );
 		float z = gsl_vector_get( dir, 2 );
-		
+
 		float r = sqrt( x*x + y*y + z*z ); //gets discarded, should be 1 anyway
 		pair.theta = acos( z/r );
 		pair.phi = atan2( y, x );

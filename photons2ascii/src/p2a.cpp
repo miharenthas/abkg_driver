@@ -91,7 +91,7 @@ int main( int argc, char **argv ){
 	gsl_vector_set( msg.beam_dir, 0, 0 );
 	gsl_vector_set( msg.beam_dir, 1, 0 );
 	gsl_vector_set( msg.beam_dir, 2, 1 ); //Z is the default direction.
-	msg.ft = { 0, 2*__pi, 0, __pi };
+	msg.ft = { 0, 2*__pi, 0, __pi }; //phi and theta
 
 	struct option opts[] = {
 		{ "verbose", no_argument, &flagger, flagger | VERBOSE },
@@ -212,6 +212,7 @@ unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 	
 	unsigned nb_read=0, nb_total=0;
 	nb_read = fill_photon_buffer( pbuf_back, in, PHOTON_BUNCH_SZ );
+
 	//unlock-read
 	while( nb_read ){
 		nb_total += nb_read;
@@ -254,7 +255,7 @@ void *make_events( void *the_msg ){
 	gsl_vector *ranges = gsl_vector_alloc( 4 );
 	p2a::get_ranges( ranges, msg->ft );
 	
-	float boost_e;
+	float boost_e, beta;
 	
 	//NOTE: the while loop is effectively something needed by the pthreaded app
 	//while( msg->worker_go_on ){
@@ -266,7 +267,7 @@ void *make_events( void *the_msg ){
 	//init a unforum pseudorandom distro
 	srand( time(NULL) );
 	
-	#pragma omp parallel private( pair, dir, mom, boost_e, rng )
+	#pragma omp parallel private( beta, pair, dir, mom, boost_e, rng )
 	{
 	rng = gsl_rng_alloc( gsl_rng_default );
 	gsl_rng_set( rng, rand() + omp_get_thread_num() );
@@ -289,12 +290,10 @@ void *make_events( void *the_msg ){
 			if( msg->beam_sigma )
 				boost_e = p2a::get_rande( msg->beam_e, msg->beam_sigma, rng );
 			else boost_e = msg->beam_e;
+			beta = p2a::beam2beta( boost_e, msg->beam_a, msg->beam_z );
+			pair = p2a::get_dangle( beta, pair, msg->beam_dir );
 			boost_e = p2a::get_dboost( msg->pht_buf[i].p[j],
-				                   p2a::beam2beta( boost_e,
-				                                   msg->beam_a,
-				                                   msg->beam_z ),
-				                   pair, msg->beam_dir );
-			
+				                   beta, pair, msg->beam_dir );
 			p2a::get_momentum( mom, dir, boost_e );
 			msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
 		}

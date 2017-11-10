@@ -8,10 +8,10 @@ namespace p2a{
 	void get_ranges( gsl_vector *ranges, fromto &fromtos ){
 		if( !ranges ) return; //TODO: better check needed here
 		
-		float u_rng = ( fromtos.th_to - fromtos.th_from )/( 2*__pi );
-		float v_from = ( cos( fromtos.ph_to ) +1 )/2;
-		float v_to = ( cos( fromtos.ph_from ) +1 )/2;
-		float v_rng = ( v_to - v_from );
+		float u_rng = ( fromtos.ph_to - fromtos.ph_from )/( 2*__pi );
+		float v_from = ( cos( fromtos.th_to ) +1 )/2;
+		float v_to = ( cos( fromtos.th_from ) +1 )/2;
+		float v_rng = v_to - v_from;
 		
 		gsl_vector_set( ranges, 0, u_rng );
 		gsl_vector_set( ranges, 1, v_rng );
@@ -26,10 +26,10 @@ namespace p2a{
 		float v_rng = gsl_vector_get( ranges, 1 );
 		float v_from = gsl_vector_get( ranges, 2 );
 		
-		float u_rnd = rand()*u_rng/RAND_MAX + fromtos.th_from/(2*__pi);
+		float u_rnd = rand()*u_rng/RAND_MAX + fromtos.ph_from/(2*__pi);
 		float v_rnd = rand()*v_rng/RAND_MAX + v_from;
-		pair.theta = 2*__pi*u_rnd;
-		pair.phi = acos( 2*v_rnd -1 ) + __pi/2;
+		pair.phi = 2*__pi*u_rnd;
+		pair.theta = acos( 2*v_rnd -1 );
 	}
 	
 	//----------------------------------------------------------------------------

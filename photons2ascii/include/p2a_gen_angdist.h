@@ -19,10 +19,10 @@
 
 namespace p2a{
 	typedef struct _angle_ranges {
-		float th_from;
-		float th_to;
 		float ph_from;
 		float ph_to;
+		float th_from;
+		float th_to;
 	} fromto;
 	//NOTE: the directions will be held in gsl_vectors
 	
