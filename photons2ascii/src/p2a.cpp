@@ -248,14 +248,14 @@ unsigned process( FILE *out, FILE *in, struct tmessage *msg ){
 //      leaving them inside, waiting for the will to implement them.
 void *make_events( void *the_msg ){
 	struct tmessage *msg = (struct tmessage*)the_msg;
-	gsl_vector *dir, *mom;
+	gsl_vector *dir, *mom, *mom4;
 	p2a::angpair pair;
 	gsl_rng *rng;
 	
 	gsl_vector *ranges = gsl_vector_alloc( 4 );
 	p2a::get_ranges( ranges, msg->ft );
 	
-	float boost_e, beta;
+	float e, beta;
 	
 	//NOTE: the while loop is effectively something needed by the pthreaded app
 	//while( msg->worker_go_on ){
@@ -267,12 +267,13 @@ void *make_events( void *the_msg ){
 	//init a unforum pseudorandom distro
 	srand( time(NULL) );
 	
-	#pragma omp parallel private( beta, pair, dir, mom, boost_e, rng )
+	#pragma omp parallel private( beta, pair, dir, mom, mom4, e, rng )
 	{
 	rng = gsl_rng_alloc( gsl_rng_default );
 	gsl_rng_set( rng, rand() + omp_get_thread_num() );
 	dir = gsl_vector_alloc( 3 );
 	mom = gsl_vector_alloc( 3 );
+	mom4 = gsl_vector_alloc( 4 );
 	#pragma omp for
 	for( int i=0; i < msg->pht_buf_sz; ++i ){
 		//prepare the event
@@ -288,13 +289,12 @@ void *make_events( void *the_msg ){
 			p2a::get_randpair( pair, ranges, msg->ft );
 			p2a::get_randdir( dir, pair );
 			if( msg->beam_sigma )
-				boost_e = p2a::get_rande( msg->beam_e, msg->beam_sigma, rng );
-			else boost_e = msg->beam_e;
-			beta = p2a::beam2beta( boost_e, msg->beam_a, msg->beam_z );
-			pair = p2a::get_dangle( beta, pair, msg->beam_dir );
-			boost_e = p2a::get_dboost( msg->pht_buf[i].p[j],
-				                   beta, pair, msg->beam_dir );
-			p2a::get_momentum( mom, dir, boost_e );
+				e = p2a::get_rande( msg->beam_e, msg->beam_sigma, rng );
+			else e = msg->beam_e;
+			beta = p2a::beam2beta( e, msg->beam_a, msg->beam_z );
+			p2a::get_momentum( mom, dir, msg->pht_buf[i].p[j] );
+			p2a::boost( mom4, mom, msg->beam_dir, beta );
+			p2a::fourmom2mom( mom, mom4 );
 			msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
 		}
 	}
