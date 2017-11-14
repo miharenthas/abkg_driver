@@ -26,7 +26,7 @@ namespace p2a{
 		//make the boost matrix
 		gsl_matrix *B = gsl_matrix_alloc( 4, 4 );
 		float gamma = 1/sqrt( 1 - pow( beta, 2 ) );
-		const float *n = beam_d->data;
+		const double *n = beam_d->data;
 		
 		gsl_matrix_set( B, 0, 0, gamma );
 		gsl_matrix_set( B, 0, 1, -1*gamma*beta*-1*n[0] );
