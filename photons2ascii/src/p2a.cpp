@@ -138,8 +138,8 @@ int main( int argc, char **argv ){
 				break;
 			case 'a' :
 				sscanf( optarg, "from[%f,%f]to[%f,%f]",
-					msg.ft.th_from, msg.ft.th_to,
-					msg.ft.ph_from, msg.ft.ph_to );
+					msg.ft.th_from, msg.ft.ph_from,
+					msg.ft.th_to, msg.ft.ph_to );
 				ft_ptr = &msg.ft.th_from;
 				for( int i=0; i < 4; ++i ) ft_ptr[i] *= __pi/180;
 				break;
