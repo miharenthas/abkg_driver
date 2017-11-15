@@ -1,0 +1,74 @@
+Welcome to p2a, a program that brings photons in the nucleus' frame of reference and produces R3B ASCII events -- bodgelogger friendly(*)!
+
+===
+COMPILE the program:
+===
+
+1. Make sure you have the GNU Scientific Library installed and reachable, either in the system default search paths or with $PATH and $LD_LIBRARY_PATH properly set.
+Any version that came out in the last 5 years should do --but I didn't test it extensively.
+
+2. Put yourself in the directory where the Makefile is, make sure that the directories "bin" and "lib" are present (if they are not, make will complain and fail).
+  
+  $ make -j$(nproc) #or simply make.
+
+3. Optionally, you can use the install.sh script to install a program in a reasonable OS (won't work on the GSI machines).
+
+  $ sudo ./install.sh
+
+4. Now you're ready to start.
+
+===
+USE the program:
+===
+
+  $ p2a [FILES] [OPTIONS]
+
+FILES: are the input files: you can specify up to 64 of them, because of lazy.
+The program will read photons also from the standard input, so you may consider that option also.
+
+OPTIONS:
+	--verbose | -v
+		Print some information about the execution to the standard output.
+	
+	--beam-a | -A <number>
+		Set the mass number of the beam.
+		If the option is not selected, the default 132 is used.
+	
+	--beam-z | -Z <number>
+		Set the element (charge) of the beam.
+		If the option is not selected, the default 50 is used.
+	
+	--beam-energy | -e <number>
+		Set the beam energy -- the energy of the emitting nucleus when gammas are emitted.
+		If not specified, 0.490 aGeV is used.
+		NOTE: p2a doesn't yet support target information and doesn't calculate the energy
+		      loss by itself. You may want to calculate how fast your nucleus is going
+		      in the middle of your target beforehand and use that value.
+	
+	--beam-versor | -d [<number>,<number>,<number>]
+		Set the beam direction.
+		If for any reason you have a beam in a weird direction, set it with this option.
+		If not specified, the default [0,0,1] is used.
+		NOTE: a spread in the beam direction is not yet supported. It might be in the future.
+	
+	--solid-angle | -a from[<theta>,<phi>]to[<theta>,<phi>]
+		Set a target solid angle.
+		By default, the photons are distributed uniformly on 4pi in the nucleus' frame of reference. If you want to target a specific solid angle for any reason, you can use this option.
+		NOTE: the angle is specified according to the ISO standard: given the versor V
+		      -- theta is the angle with the Z axis, measured from positive (of a right handed FoR)
+		      -- phi is the angle with the Y axis, measured from positive
+	
+	--gaussian-energy-spread | -g <sigma>
+		Set a gaussian energy distribution for the beam, centered at -e and with this sigma.
+		If not specified, no gaussian distribution is used.
+	
+	--input | -i <file name>
+		Set one input file (will discard any other file)
+	
+	--output | -o <file name>
+		Set the output file.
+		If not specified, the output is printed to the standart output.
+
+NOTE: this, as with all the programs in here, it's not rock solid and you will stumble into horrible bugs. Please report them to me and I'll try to fix them!
+
+  lzanetti@ikp.tu-darmstadt.de or https://www.github.com/miharenthas
