@@ -23,6 +23,7 @@
 #define GESPREAD 0x10
 
 #define PHOTON_BUNCH_SZ 4096
+#define MAX_MOMENTUM_NORM 1000 //GeV, or one TeV
 
 //------------------------------------------------------------------------------------
 //a single entry in the photon buffer: it's a salami of CoM energies
@@ -255,6 +256,10 @@ void *make_events( void *the_msg ){
 	gsl_vector *ranges = gsl_vector_alloc( 4 );
 	p2a::get_ranges( ranges, msg->ft );
 	
+	//create a shared null vector
+	gsl_vector *nullv = gsl_vector_alloc( 3 );
+	memset( nullv->data, 0, 3*sizeof(double) );
+	
 	float e, beta;
 	
 	//NOTE: the while loop is effectively something needed by the pthreaded app
@@ -295,7 +300,10 @@ void *make_events( void *the_msg ){
 			p2a::get_momentum( mom, dir, msg->pht_buf[i].p[j] );
 			p2a::boost( mom4, mom, msg->beam_dir, beta );
 			p2a::fourmom2mom( mom, mom4 );
-			msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
+			if( gsl_blas_dnrm2( mom ) < MAX_MOMENTUM_NORM )
+				msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
+			else
+				msg->evt_buf[i].trk[j] = p2a::photon2track( nullv );
 		}
 	}
 	gsl_vector_free( dir );
