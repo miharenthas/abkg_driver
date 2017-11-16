@@ -24,6 +24,7 @@
 
 #define PHOTON_BUNCH_SZ 4096
 #define MAX_MOMENTUM_NORM 1000 //GeV, or one TeV
+#define MAX_ATTEMPTS 512 //number of attempts to rescue a failed momentum before giving up
 
 //------------------------------------------------------------------------------------
 //a single entry in the photon buffer: it's a salami of CoM energies
@@ -261,6 +262,7 @@ void *make_events( void *the_msg ){
 	memset( nullv->data, 0, 3*sizeof(double) );
 	
 	float e, beta;
+	int failcount;
 	
 	//NOTE: the while loop is effectively something needed by the pthreaded app
 	//while( msg->worker_go_on ){
@@ -272,7 +274,7 @@ void *make_events( void *the_msg ){
 	//init a unforum pseudorandom distro
 	srand( time(NULL) );
 	
-	#pragma omp parallel private( beta, pair, dir, mom, mom4, e, rng )
+	#pragma omp parallel private( beta, pair, dir, mom, mom4, e, rng, failcount )
 	{
 	rng = gsl_rng_alloc( gsl_rng_default );
 	gsl_rng_set( rng, rand() + omp_get_thread_num() );
@@ -291,6 +293,11 @@ void *make_events( void *the_msg ){
 		
 		//do the photonZ
 		for( int j=0; j < msg->pht_buf[i].nb; ++j ){
+			//if a momentum comes out not well
+			//try again from here
+			failcount = 0;
+			__TRY_AGAIN_SAM__ :
+			
 			p2a::get_randpair( pair, ranges, msg->ft );
 			p2a::get_randdir( dir, pair );
 			if( msg->beam_sigma )
@@ -302,8 +309,11 @@ void *make_events( void *the_msg ){
 			p2a::fourmom2mom( mom, mom4 );
 			if( gsl_blas_dnrm2( mom ) < MAX_MOMENTUM_NORM )
 				msg->evt_buf[i].trk[j] = p2a::photon2track( mom );
-			else
+			else{
+				++failcount;
+				if( failcount < MAX_ATTEMPTS ) goto __TRY_AGAIN_SAM__;
 				msg->evt_buf[i].trk[j] = p2a::photon2track( nullv );
+			}
 		}
 	}
 	gsl_vector_free( dir );
