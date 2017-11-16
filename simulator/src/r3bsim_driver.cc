@@ -25,7 +25,7 @@ r3bsim_opts *r3bsim_options_alloc(){
 	
 	//notice that the default options are not
 	//viable because of the NULL fDetList.
-	so->nEvents = 1000000;
+	so->nEvents = INT_MAX;
 	so->fDetlist["null"] = "null";
 	strcpy( so->Target, "LeadTarget" );
 	so->fVis = kFALSE;
@@ -176,8 +176,10 @@ std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){
 	if( strstr( det_opts, ":DTOF:" ) ) m["DTOF"] = "dtof_v15a.geo.root";
 	if( strstr( det_opts, ":DCH:" ) ) m["DCH"] = "dch_v13a.geo.root";
 	if( strstr( det_opts, ":TRACKER:" ) ) m["TRACKER"] = "tra_v13vac.geo.root";
-	if( strstr( det_opts, ":STaRTrackv14a:" ) ||
-	    strstr( det_opts, ":STaRTrack:" ) ) m["STaRTrack"] = "startra_v14a.geo.root";
+	if( strstr( det_opts, ":STaRTrackv15a:" ) ||
+	    strstr( det_opts, ":STaRTrack:" ) ||
+	    strstr( det_opts, ":Startrack:" ) ) m["STaRTrack"] = "startra_v15a.geo.root";
+	if( strstr( det_opts, ":StaRTtrakv14a:" ) ) m["STaRTrack"] = "startra_v14a.geo.root";
 	if( strstr( det_opts, ":STaRTrackv13a:" ) ) m["STaRTrack"] = "startra_v13a.geo.root";
 	if( strstr( det_opts, ":GFI:" ) ) m["GFI"] = "gfi_v13a.geo.root";
 	if( strstr( det_opts, ":LAND:" ) ) m["LAND"] = "land_v12a_10m.geo.root";
@@ -373,16 +375,14 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 	//      and make its geometry only if this hasn't been
 	//      instantiated yet. This avoids overlaps.
 	if( !so.fDetlist["TRACKER"].empty() ) {
-		R3BDetector* tra = new R3BTra("Tracker", kTRUE);
-		tra->SetGeometryFileName( so.fDetlist["TRACKER"].c_str() );
+		R3BDetector* tra = new R3BTra( so.fDetlist["TRACKER"].c_str() );
 		tra->SetEnergyCut(1e-4);
 		run->AddModule(tra);
 	}
 
 	//R3B Target definition
 	if( !so.fDetlist["TARGET"].empty() ) {
-		R3BModule* target= new R3BTarget( so.Target );
-		target->SetGeometryFileName( so.fDetlist["TARGET"].c_str() );
+		R3BModule* target= new R3BTarget( so.fDetlist["TARGET"].c_str() );
 		run->AddModule(target);
 	}
 	
@@ -416,129 +416,112 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 
 	//R3B SiTracker Cooling definition
 	if( !so.fDetlist["VACVESSELCOOL"].empty() ) {
-		R3BModule* vesselcool= new R3BVacVesselCool( so.Target );
-		vesselcool->SetGeometryFileName( so.fDetlist["VACVESSELCOOL"].c_str() );
+		R3BModule* vesselcool= new R3BVacVesselCool( so.fDetlist["VACVESSELCOOL"].c_str() );
 		run->AddModule(vesselcool);
 	}
 
 	//R3B Magnet definition
 	if( !so.fDetlist["ALADIN"].empty() ) {
-		R3BModule* mag = new R3BMagnet("AladinMagnet");
-		mag->SetGeometryFileName( so.fDetlist["ALADIN"].c_str() );
+		R3BModule* mag = new R3BMagnet( so.fDetlist["ALADIN"].c_str() );
 		run->AddModule(mag);
 	}
 
 	//R3B Magnet definition
 	if( !so.fDetlist["GLAD"].empty() ) {
-		R3BModule* mag = new R3BGladMagnet("GladMagnet");
-		mag->SetGeometryFileName( so.fDetlist["GLAD"].c_str() );
+		R3BModule* mag = new R3BGladMagnet( so.fDetlist["GLAD"].c_str() );
 		run->AddModule(mag);
 	}
 
 	//R3B Crystal Calorimeter
 	if( !so.fDetlist["CRYSTALBALL"].empty() ) {
-		R3BDetector* xball = new R3BXBall("XBall", kTRUE);
+		R3BDetector* xball = new R3BXBall( so.fDetlist["CRYSTALBALL"].c_str() );
 		((R3BXBall*)xball)->SelectCollectionOption( 2 ); //causing the output of data
 		                                                 //at all levels:
 		                                                 // 0: default, only "DHIT"-ish
 		                                                 // 1: only "HIT"-ish
 		                                                 // 2: both.
-		xball->SetGeometryFileName( so.fDetlist["CRYSTALBALL"].c_str() );
 		run->AddModule(xball);
 	}
 
 	if( !so.fDetlist["CALIFA"].empty() ) {
-		R3BDetector* calo = new R3BCalifa("Califa", kTRUE);
+		R3BDetector* calo = new R3BCalifa( so.fDetlist["CALIFA"].c_str() );
 		((R3BCalifa *)calo)->SelectGeometryVersion(10);
 		//Selecting the Non-uniformity of the crystals (1 means +-1% max deviation)
 		((R3BCalifa *)calo)->SetNonUniformity(1.0);
-		calo->SetGeometryFileName( so.fDetlist["CALIFA"].c_str() );
 		run->AddModule(calo);
 	}
 
 	// STaRTrack
 	if( !so.fDetlist["STaRTrack"].empty()  ) {
-		R3BDetector* tra = new R3BSTaRTra("STaRTrack", kTRUE);
-		tra->SetGeometryFileName( so.fDetlist["STaRTrack"].c_str() );
-	run->AddModule(tra);
+		R3BDetector* tra = new R3BStartrack( so.fDetlist["STaRTrack"].c_str() );
+		run->AddModule(tra);
 		}
 
 	// DCH drift chambers
 	if( !so.fDetlist["DCH"].empty() ) {
-		R3BDetector* dch = new R3BDch("Dch", kTRUE);
-		dch->SetGeometryFileName( so.fDetlist["DCH"].c_str() );
+		R3BDetector* dch = new R3BDch( so.fDetlist["DCH"].c_str() );
 		run->AddModule(dch);
 	}
 
 	// Tof
 	if( !so.fDetlist["TOF"].empty() ) {
-		R3BDetector* tof = new R3BTof("Tof", kTRUE);
-		tof->SetGeometryFileName( so.fDetlist["TOF"].c_str() );
+		R3BDetector* tof = new R3BTof( so.fDetlist["TOF"].c_str() );
 		run->AddModule(tof);
 	}
 
 	// mTof
 	if( !so.fDetlist["MTOF"].empty() ) {
-		R3BDetector* mTof = new R3BmTof("mTof", kTRUE);
-		mTof->SetGeometryFileName( so.fDetlist["MTOF"].c_str() );
+		R3BDetector* mTof = new R3BmTof( so.fDetlist["MTOF"].c_str() );
 		run->AddModule(mTof);
 	}
 
 	// dTof
 	if( !so.fDetlist["DTOF"].empty() ) {
-		R3BDetector* dTof = new R3BdTof("dTof", kTRUE);
-		dTof->SetGeometryFileName( so.fDetlist["DTOF"].c_str() );
+		R3BDetector* dTof = new R3BdTof( so.fDetlist["DTOF"].c_str() );
 		run->AddModule(dTof);
 	}
 
 	// GFI detector
 	if( !so.fDetlist["GFI"].empty() ) {
-		R3BDetector* gfi = new R3BGfi("Gfi", kTRUE);
-		gfi->SetGeometryFileName( so.fDetlist["GFI"].c_str() );
+		R3BDetector* gfi = new R3BGfi( so.fDetlist["GFI"].c_str() );
 		run->AddModule(gfi);
 	}
 
 	// Land Detector
 	if( !so.fDetlist["LAND"].empty() ) {
-		R3BDetector* land = new R3BLand("Land", kTRUE);
+		R3BDetector* land = new R3BLand( so.fDetlist["LAND"].c_str() );
 		land->SetVerboseLevel(1);
-		land->SetGeometryFileName( so.fDetlist["LAND"].c_str() );
 		run->AddModule(land);
 	}
 
 	// DEPRECATED: NeuLand Scintillator Detector
 	if( !so.fDetlist["SCINTNEULAND"].empty() ){
-		R3BDetector* land = new R3BLand("Land", kTRUE);
+		R3BDetector* land = new R3BLand( so.fDetlist["SCINTNEULAND"].c_str() );
 		land->SetVerboseLevel(1);
-		land->SetGeometryFileName( so.fDetlist["SCINTNEULAND"].c_str() );
 		run->AddModule(land);
 	}
 
 	// Neuland Detector
 	if( !so.fDetlist["NEULAND"].empty() ){
-		R3BDetector* neuland = new R3BNeuland();
-		neuland->SetGeometryFileName( so.fDetlist["NEULAND"].c_str() );
+		R3BDetector* neuland = new R3BNeuland( so.fDetlist["NEULAND"].c_str() );
 		run->AddModule(neuland);
 	}
 
 	// MFI Detector
 	if( !so.fDetlist["MFI"].empty() ){
-		R3BDetector* mfi = new R3BMfi("Mfi", kTRUE);
-		mfi->SetGeometryFileName( so.fDetlist["MFI"].c_str() );
+		R3BDetector* mfi = new R3BMfi( so.fDetlist["MFI"].c_str() );
 		run->AddModule(mfi);
 	}
 
 	// PSP Detector
 	if( !so.fDetlist["PSP"].empty() ){
-		R3BDetector* psp = new R3BPsp("Psp", kTRUE);
-		psp->SetGeometryFileName( so.fDetlist["PSP"].c_str() );
+		R3BDetector* psp = new R3BPsp( so.fDetlist["PSP"].c_str() );
 		run->AddModule(psp);
 	}
 
 	// Luminosity detector
 	if( !so.fDetlist["LUMON"].empty() ) {
-		R3BDetector* lumon = new ELILuMon("LuMon", kTRUE);
-		lumon->SetGeometryFileName( so.fDetlist["LUMON"].c_str() );
+		R3BDetector* lumon = new ELILuMon( so.fDetlist["LUMON"].c_str() );
 		run->AddModule(lumon);
 	}
 	
