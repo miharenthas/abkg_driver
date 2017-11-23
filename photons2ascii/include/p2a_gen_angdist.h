@@ -27,7 +27,8 @@ namespace p2a{
 	//NOTE: the directions will be held in gsl_vectors
 	
 	//----------------------------------------------------------------------------
-	//a function to get N random number pairs
+	//a function to get ONE random number pairs
+	//ranges: a gsl_vector of length 4 to hold UV ranges
 	void get_ranges( gsl_vector *ranges, fromto &fromtos );
 	//NOTE: need to initialize random sequence separately (thread friendly)
 	void get_randpair( angpair &pair, gsl_vector *ranges, fromto &fromtos );

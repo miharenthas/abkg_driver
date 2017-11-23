@@ -11,8 +11,8 @@ fi
 
 #headers
 for f in $( ls include/*.h ); do
-	if [ ! -L /usr/local/include/$f ]; then
-		ln -s $PWD/include/$f /usr/local/include
+	if [ ! -L /usr/local/$f ]; then
+		ln -s $PWD/$f /usr/local/include
 		echo $f
 	fi
 done
