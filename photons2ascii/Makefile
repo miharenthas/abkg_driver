@@ -6,7 +6,7 @@ include_d = $(progs_home)/include
 bin_d = $(progs_home)/bin
 lib_d = $(progs_home)/lib
 
-cxx_flags = -std=c++11 -lgsl -lgslcblas -lm -lgmp -frounding-math -ggdb -pthread -fopenmp -I $(include_d) -Wno-narrowing
+cxx_flags = -std=c++14 -lgsl -lgslcblas -lm -lgmp -frounding-math -ggdb -pthread -fopenmp -I $(include_d) -Wno-narrowing
 
 objects = p2a_angtools p2a_gen_angdist p2a_gen_momenta p2a_dboost p2a_make_evt
 libs = libp2a

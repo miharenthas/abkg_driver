@@ -15,6 +15,7 @@
 #include "TStopwatch.h"
 #include "TVirtualMC.h"
 #include "TGeant3.h"
+#include "TString.h"
 
 //a very ugly check on ROOT version
 //because the "machine independent types" are defined

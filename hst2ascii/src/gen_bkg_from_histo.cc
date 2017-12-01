@@ -64,13 +64,14 @@ gen_bkg_opts *gen_bkg_options_alloc(){
 void gen_bkg_options_free( gen_bkg_opts *go ){
 	//NOTE: I'm assuming the options are being manipulated only
 	//      through the functions here, so they are properly allocated
-	if( go->histo != NULL && go->histo->IsOnHeap() ) go->histo->Delete();
+	//this makes root 6 freak out
+	/*if( go->histo != NULL && go->histo->IsOnHeap() ) go->histo->Delete();*/
 
 	//this makes ROOT 5 freak out...
-	/*if( ftell( go->output_target ) != -1L ){
+	if( ftell( go->output_target ) != -1L ){
 		if( go->is_pipe ){ pclose( go->output_target ); }
 		else if( go->output_target != stdout ){ fclose( go->output_target ); }
-	}*/
+	}
 
 	free( go );
 }

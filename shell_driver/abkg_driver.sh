@@ -80,16 +80,16 @@ ad_check_env(){
 		fi
 	fi
 	if [ -z "$(echo $PATH | grep \"gbkg\")" ]; then
-		if [ -x $ABKG_HOME_DIR/root_progs/gbkg ]; then
-			export PATH=$PATH:$ABKG_HOME_DIR/root_progs/
+		if [ -x $ABKG_HOME_DIR/hst2ascii/gbkg ]; then
+			export PATH=$PATH:$ABKG_HOME_DIR/hst2ascii/
 		else
 			echo "gbkg is unreachable. Did you compile it?"
 			exit 1
 		fi
 	fi
 	if [ -z "$(echo $PATH | grep \"sbkg\")" ]; then
-		if [ -x $ABKG_HOME_DIR/root_progs/sbkg ]; then
-			export PATH=$PATH:$ABKG_HOME_DIR/root_progs/
+		if [ -x $ABKG_HOME_DIR/simulator/sbkg ]; then
+			export PATH=$PATH:$ABKG_HOME_DIR/simulator/
 		else
 			echo "sbkg is unreachable. Did you compile it?"
 			exit 1

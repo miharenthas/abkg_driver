@@ -382,7 +382,8 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 
 	//R3B Target definition
 	if( !so.fDetlist["TARGET"].empty() ) {
-		R3BModule* target= new R3BTarget( so.fDetlist["TARGET"].c_str() );
+		R3BModule* target= new R3BTarget( "gerald",
+			TString( so.fDetlist["TARGET"].c_str() ) );
 		run->AddModule(target);
 	}
 	
@@ -416,7 +417,8 @@ void r3bsim_geomant( FairRunSim *run, r3bsim_opts &so ){
 
 	//R3B SiTracker Cooling definition
 	if( !so.fDetlist["VACVESSELCOOL"].empty() ) {
-		R3BModule* vesselcool= new R3BVacVesselCool( so.fDetlist["VACVESSELCOOL"].c_str() );
+		R3BModule* vesselcool= new R3BVacVesselCool( "bobby", 
+			TString( so.fDetlist["VACVESSELCOOL"].c_str() ) );
 		run->AddModule(vesselcool);
 	}
 

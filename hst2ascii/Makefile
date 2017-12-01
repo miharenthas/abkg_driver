@@ -6,7 +6,7 @@ BIN_D = $(PROGS_HOME)/bin
 
 ROOT_LIBS = `root-config --libs`
 ROOT_FLAGS = `root-config --cflags`
-CXX_FLAGS = -Wno-varargs -std=c++11 -I $(INCLUDE_D) -ggdb
+CXX_FLAGS = -Wno-varargs -std=c++14 -I $(INCLUDE_D) -ggdb
 
 OBJECTS = gen_bkg_from_histo
 BINARIES = $(BIN_D)/gen_bkg_from_histo.o
