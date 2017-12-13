@@ -4,17 +4,25 @@ SRC_D = $(PROGS_HOME)/src
 INCLUDE_D = $(PROGS_HOME)/include
 BIN_D = $(PROGS_HOME)/bin
 
+ISGCC14CAPABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 5)
+
 ROOT_LIBS = `root-config --libs`
 GEANT_LIBS = -lgeant321 -lPythia6 -lVMC -lEG -lgfortran
 FAIR_LIBS =  -lFairTools -lParBase -lBase -lGeom
-R3B_LIBS = -lELILuMon -lField -lR3Bbase -lR3BData -lR3BCalifa -lR3BDch -lR3BdTof -lR3BEvtVis -lR3BFi4 -lR3BGen -lR3BGfi -lR3BLand -lR3BLos -lR3BMfi -lR3BmTof -lR3BNeuland -lR3BPassive -lR3BPlist -lR3BPsp -lR3BStartrack -lR3BTCal -lR3BTof -lR3BTra -lR3BXBall -ltimestitcher -lR3BMVPlanes -lbodgelogger
+R3B_LIBS = -lELILuMon -lField -lR3Bbase -lR3BData -lR3BCalifa -lR3BDch -lR3BdTof -lR3BEvtVis -lR3BFi4 -lR3BGen -lR3BGfi -lR3BLand -lR3BLos -lR3BMfi -lR3BmTof -lR3BNeuland -lR3BPassive -lR3BPsp -lR3BStartrack -lR3BTCal -lR3BTof -lR3BTra -lR3BXBall -ltimestitcher -lR3BMVPlanes -lbodgelogger
 ROOT_LIBS += $(FAIR_LIBS)
 ROOT_LIBS += $(R3B_LIBS)
 ROOT_LIBS += $(GEANT_LIBS)
 
 ROOT_FLAGS = `root-config --cflags`
 ROOT_FLAGS += -L $(SIMPATH)/lib -L $(FAIRROOTPATH)/lib -I $(SIMPATH)/include -I $(SIMPATH)/include/TGeant3 -I $(FAIRROOTPATH)/include
-CXX_FLAGS = -Wno-varargs -std=c++14 -I $(INCLUDE_D) -pthread -ggdb
+CXX_FLAGS = -Wno-varargs -I $(INCLUDE_D) -pthread -ggdb
+
+ifeq "$ISGCC14CAPABLE" "1"
+	CXX_FLAGS += -std=c++14
+else
+	CXX_FLAGS += -std=c++11
+endif
 
 OBJECTS = r3b_ascii_gen r3bsim_driver r3b_ascii_event_structs r3b_ascii_paged_stack
 BINARIES = $(BIN_D)/r3b_ascii_gen.o $(BIN_D)/r3bsim_driver.o $(BIN_D)/r3b_ascii_event_structs.o $(BIN_D)/r3b_ascii_paged_stack.o
