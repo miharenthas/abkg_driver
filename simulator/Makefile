@@ -18,7 +18,7 @@ ROOT_FLAGS = `root-config --cflags`
 ROOT_FLAGS += -L $(SIMPATH)/lib -L $(FAIRROOTPATH)/lib -I $(SIMPATH)/include -I $(SIMPATH)/include/TGeant3 -I $(FAIRROOTPATH)/include
 CXX_FLAGS = -Wno-varargs -I $(INCLUDE_D) -pthread -ggdb
 
-ifeq "$ISGCC14CAPABLE" "1"
+ifeq "$(ISGCC14CAPABLE)" "1"
 	CXX_FLAGS += -std=c++14
 else
 	CXX_FLAGS += -std=c++11
