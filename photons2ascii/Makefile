@@ -10,7 +10,7 @@ is_gcc_14_capable = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 5)
 
 cxx_flags = -lgsl -lgslcblas -lm -lgmp -frounding-math -ggdb -pthread -fopenmp -I $(include_d) -Wno-narrowing
 
-ifeq "$is_gcc_14_capable" "1"
+ifeq "$(is_gcc_14_capable)" "1"
 	cxx_flags += -std=c++14
 else
 	cxx_flags += -std=c++11
