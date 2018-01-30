@@ -19,202 +19,6 @@ void r3bsim_env_setup(){
 }
 
 //------------------------------------------------------------------------------------
-//allocate the options and init them to their defaults
-r3bsim_opts *r3bsim_options_alloc(){
-	r3bsim_opts *so = new r3bsim_opts;
-	
-	//notice that the default options are not
-	//viable because of the NULL fDetList.
-	so->nEvents = INT_MAX;
-	so->fDetlist["null"] = "null";
-	strcpy( so->Target, "LeadTarget" );
-	so->fVis = kFALSE;
-	strcpy( so->fMC, "TGeant3" );
-	so->fUserPList = kFALSE;
-	so->fR3BMagnet = kTRUE;
-	so->fMeasCurrent = 2000.;
-	strcpy( so->OutFile, "r3bsim_bkg.root" );
-	strcpy( so->ParFile, "r3bpar_bkg.root" );
-	so->EventFile = NULL;
-	strcpy( so->usr_cuts, "./ugly/SetCuts.C" );
-	so->field_scale = -0.5; //apparently, this is the default...
-	
-	return so;
-}
-
-//------------------------------------------------------------------------------------
-//edit the options
-//NOTE: despite the full cpying infrastructure of std::map, it cannot be handled
-//      by va_arg because it's not trivially copiable. This means that a pointer to it
-//      must be passed. This is stressed by the suffix "_PTR" in the enum
-//TODO: this is vulnearble to buffer overflows. Add checks. 
-void r3bsim_options_edit( r3bsim_opts *so, const r3bsim_fmt *format, ... ){
-	//count the arguments
-	int n_arg;
-	for( n_arg=0; format[n_arg] != END_OF_FORMAT; ++n_arg );
-	
-	//init the argument list with the proper size
-	va_list args; va_start( args, n_arg );
-	
-	for( int i=0; format[i] != END_OF_FORMAT; ++i ){
-		switch( format[i] ){
-			case NB_EVENTS :
-				so->nEvents = va_arg( args, Int_t );
-				break;
-			case DET_LIST_PTR :
-				typedef std::map<std::string, std::string> Detlist_t;
-				so->fDetlist = *va_arg( args, Detlist_t* );
-				break;
-			case TARGET :
-				strcpy( so->Target,  va_arg( args, char* ) );
-				if( !strstr( so->fDetlist["TARGET"].c_str(), so->Target ) ){
-					if( strstr( so->Target, "LeadTarget" ) )
-						so->fDetlist["TARGET"] = "target_LeadTarget.geo.root";
-					if( strstr( so->Target, "Para" ) )
-						so->fDetlist["TARGET"] = "target_Para.geo.root";
-					if( strstr( so->Target, "Para45" ) )
-						so->fDetlist["TARGET"] = "target_Para45.geo.root";
-					if( strstr( so->Target, "LiH" ) )
-						so->fDetlist["TARGET"] = "target_LiH.geo.root";
-				}
-				break;
-			case VISUALIZATION_READY :
-				so->fVis = va_arg( args, int );
-				break;
-			case MC_ENGINE :
-				fprintf( stderr, "r3bsim_options_edit: WARNING, at the moment only GEANT3 is available for this program. Using that instead of %s.\n", va_arg( args, char* ) );
-				strcpy( so->fMC, "TGeant3" );
-				break;
-			case USER_PLIST :
-				so->fUserPList = va_arg( args, int );
-				break;
-			case HAS_MAGNET :
-				so->fR3BMagnet = va_arg( args, int );
-				break;
-			case MEASURE_CURRENT :
-				so->fMeasCurrent = va_arg( args, Double_t );
-				break;
-			case OUT_FILE :
-				strcpy( so->OutFile, va_arg( args, char* ) );
-				break;
-			case PAR_FILE :
-				strcpy( so->ParFile, va_arg( args, char* ) );
-				break;
-			case EVENT_FILE :
-				so->EventFile = va_arg( args, FILE* );
-				break;
-			case VERBOSE :
-				so->verbose = va_arg( args, int );
-				break;
-			case USR_CUTS :
-				strcpy( so->usr_cuts, va_arg( args, char* ) );
-				break;
-			case FIELD_SCALE :
-				so->field_scale = va_arg( args, double );
-				break;
-		}
-	}
-}
-
-//------------------------------------------------------------------------------------
-//free the options
-void r3bsim_options_free( r3bsim_opts *so ){
-	delete so;
-}
-
-//------------------------------------------------------------------------------------
-//make the geometry file name with an optional geometry tag.
-std::string r3bsim_make_geofname( const char *prefix, const char *tag_ptr ){
-	char tag[64], tag_fmt[80];
-	
-	sscanf( tag_ptr, "%s[", &tag_fmt );
-	strcat( tag_fmt, "[%s]" );
-	sscanf( tag_ptr, tag_fmt, &tag );
-	
-	std::string fname( prefix );
-	fname += tag;
-	
-	return fname + ".geo.root";
-}
-
-//------------------------------------------------------------------------------------
-//very ugly detector list parser
-//TODO: use the make_geofname util!
-std::map<std::string, std::string> r3bsim_detmant( const char *det_opts ){	
-	std::map<std::string, std::string> m;
-	
-
-	if( strstr( det_opts, ":TARGET:" ) ){
-		if( strstr( det_opts, "LeadTarget" ) ) m["TARGET"] = "target_LeadTarget.geo.root";
-		if( strstr( det_opts, "Para" ) ) m["TARGET"] = "target_Para.geo.root";
-		if( strstr( det_opts, "Para45" ) ) m["TARGET"] = "target_Para45.geo.root";
-		if( strstr( det_opts, "LiH" ) ) m["TARGET"] = "target_LiH.geo.root";
-	}
-	if( strstr( det_opts, ":TARGETWHEEL:" ) ) m["TARGETWHEEL"] = "no_file_needed";
-	if( strstr( det_opts, ":TARGETSHIELDING:" ) ) m["TARGETSHIELDING"] = "no_file_needed";
-	if( strstr( det_opts, ":TARGETATMOSPHERE:" ) ){
-		if( strstr( det_opts, "AtmoVacuum" ) ) m["TARGETATMOSPHERE"] = "vacuum";
-		if( strstr( det_opts, "AtmoAir" ) ) m["TARGETATMOSPHERE"] = "air";
-	}
-	if( strstr( det_opts, ":ALADIN:" ) ){
-		m["ALADIN"] = "aladin_v13a.geo.root";
-		m["ALAFIELD"] = "alafield";
-	}
-	if( strstr( det_opts, ":ALAFIELD:" ) ) m["ALAFIELD"] = "alafield";
-	if( strstr( det_opts, ":GLAD:" ) ){
-		if( strstr( det_opts, "GladVacuum" ) ) m["GLAD"] = "glad_v13a_vacuum.geo.root";
-		else m["GLAD"] = "glad_v13a.geo.root";
-		m["GLAFIELD"] = "glafield";
-	}
-	if( strstr( det_opts, ":GLAFIELD:" ) ) m["GLAFIELD"] = "glafield";
-	if( strstr( det_opts, ":CRYSTALBALL:" ) ) m["CRYSTALBALL"] = "cal_v13a.geo.root";
-	if( strstr( det_opts, ":CALIFAv14a:" ) ||
-	    strstr( det_opts, ":CALIFA:" ) ) m["CALIFA"] = "califa_v14a.geo.root";
-	if( strstr( det_opts, ":CALIFAv13_811:" ) ) m["CALIFA"] = "califa_v13_811.geo.root";
-	if( strstr( det_opts, ":TOF:" ) ) m["TOF"] = "tof_v13a.geo.root";
-	if( strstr( det_opts, ":MTOF:" ) ) m["MTOF"] = "mtof_v13a.geo.root";
-	if( strstr( det_opts, ":DTOF:" ) ) m["DTOF"] = "dtof_v15a.geo.root";
-	if( strstr( det_opts, ":DCH:" ) ) m["DCH"] = "dch_v13a.geo.root";
-	if( strstr( det_opts, ":TRACKER:" ) ) m["TRACKER"] = "tra_v13vac.geo.root";
-	if( strstr( det_opts, ":STaRTrackv15a:" ) ||
-	    strstr( det_opts, ":STaRTrack:" ) ||
-	    strstr( det_opts, ":Startrack:" ) ) m["STaRTrack"] = "startra_v15a.geo.root";
-	if( strstr( det_opts, ":StaRTtrakv14a:" ) ) m["STaRTrack"] = "startra_v14a.geo.root";
-	if( strstr( det_opts, ":STaRTrackv13a:" ) ) m["STaRTrack"] = "startra_v13a.geo.root";
-	if( strstr( det_opts, ":GFI:" ) ) m["GFI"] = "gfi_v13a.geo.root";
-	if( strstr( det_opts, ":LAND:" ) ) m["LAND"] = "land_v12a_10m.geo.root";
-	if( strstr( det_opts, ":SCINTNEULAND:" ) ) m["SCINTNEULAND"] = "neuland_v12a_14m.geo.root";
-	if( strstr( det_opts, ":VACVESSELCOOLv14a:" ) ||
-	    strstr( det_opts, ":VACVESSELCOOL:" ) ) m["VACVESSELCOOL"] = "vacvessel_v14a.geo.root";
-	if( strstr( det_opts, ":VACVESSELCOOLv13a:" ) ) m["VACVESSELCOOL"] = "vacvessel_v13a.geo.root";
-	if( strstr( det_opts, ":MFI:" ) ) m["MFI"] = "mfi_v13a.geo.root";
-	if( strstr( det_opts, ":PSP:" ) ) m["PSP"] = "psp_v13a.geo.root";
-	
-	//rattleplane section: requires a bit of attention because I'd like to put more
-	//than one in (eventually, not yet implemented)
-	char rp_specbuf[1024];
-	const char *p_end, *p_begin;
-	if( strstr( det_opts, ":RATTLEPLANE:" ) ){
-		if( (p_begin = strstr( det_opts, "RattleSpecs" )) != NULL ){
-			p_end = strstr( p_begin, "SpecEnd" );
-			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
-			m["RATTLEPLANE"] = rp_specbuf;
-		} else m["RATTLEPLANE"] = "RattleSpecs+[0,0,0,0,0,0,30,30,5,G]";
-	}
-
-	//stopper plane section: it's a rattleplane, only kills the particles on entrance.
-	if( strstr( det_opts, ":STOPPERPLANE:" ) ){
-		if( (p_begin = strstr( det_opts, "StopperSpecs" )) != NULL ){
-			p_end = strstr( p_begin, "SpecEnd" );
-			memcpy( rp_specbuf, p_begin, (p_end-p_begin)*sizeof(char) );
-			m["STOPPERPLANE"] = rp_specbuf;
-		} else m["STOPPERPLANE"] = "StopperSpecs+[0,0,0,0,0,0,30,30]";
-	}
-	
-	return m;
-}	
-
-//------------------------------------------------------------------------------------
 //the simulation driver itself (from r3ball.C)
 float r3bsim_driver( r3bsim_opts &so ){
 	//timer start
@@ -237,7 +41,7 @@ float r3bsim_driver( r3bsim_opts &so ){
 
 	//-------------------------------------------------
 	//associate the material
-	run->SetMaterials( "media_r3b.geo" );
+	run->SetMaterials( globber_opts.material_file );
 
 	//make the geometry.
 	r3bsim_geomant( run, so );
@@ -281,6 +85,8 @@ float r3bsim_driver( r3bsim_opts &so ){
 
 	//-------------------------------------------------
 	//initialize the runner as set
+	r3bsim_primer pri( globber_g3, globber_cuts, globber_opts );
+	run->SetSimSetup( pri );
 	run->Init();
 
 	//-------------------------------------------------

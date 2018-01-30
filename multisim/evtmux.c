@@ -63,7 +63,7 @@ void one_to_many( int argc, char **argv ){
 	//first, the input (it's the firs file)
 	for( int f=1; f < argc; f++ ){
 		if( strlen( argv[f] ) > FNAME_SIZE ){
-			fprintf( stderr, "evtmus: error: file name too long\n" );
+			fprintf( stderr, "evtmux: error: file name too long\n" );
 			exit( 1 );
 		}
 		if( argv[f][0] != '-' && !from_stdin ){
@@ -135,7 +135,7 @@ void many_to_one( int argc, char **argv ){
 	//first, the output (from the back, it's the last)
 	for( int f=argc-1; f >= 1; f-- ){
 		if( strlen( argv[f] ) > FNAME_SIZE ){
-			fprintf( stderr, "evtmus: error: file name too long\n" );
+			fprintf( stderr, "evtmux: error: file name too long\n" );
 			exit( 1 );
 		}
 		if( argv[f][0] != '-' ){

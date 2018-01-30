@@ -109,12 +109,7 @@ msim_run_sim(){
 		
 		#make the name of the output file
 		current_ofile=$OUTPUT_FILE$( printf ".proc_%02d" $nb_active_jobs )
-		current_pfile=""
-		if [ $nb_active_jobs -eq 0 ]; then
-			current_pfile=$PAR_FILE;
-		else
-			current_pfile=/dev/null
-		fi
+		current_pfile=$PAR_FILE$( printf ".proc_%02d" $nb_active_jobs )
 		
 		if [ $VERBOSE_FLAG -eq 0 ]; then
 			$PROGRAM $current_pipe $CMD -o $current_ofile -p $current_pfile 2>/dev/null 1>&2 &
@@ -122,8 +117,8 @@ msim_run_sim(){
 			$PROGRAM $current_pipe $CMD -o $current_ofile -p $current_pfile 2>>$logfile 1>&2 &
 			echo -e "\t"$PROGRAM $current_pipe $CMD -o $current_ofile -p $current_pfile
 		fi
-		
-		nb_active_jobs=$( pgrep -f -P $$ -c "$PROGRAM" )
+
+		nb_active_jobs=$( pgrep -f -P $$ -c "${PROGRAM##*/}" )
 	done
 
 	#now, let's unleash the event demuxer program
@@ -144,7 +139,7 @@ msim_run_sim(){
 		echo -n "Running: "
 	fi
 	
-	msim_job_control "$PROGRAM"
+	msim_job_control "${PROGRAM##*/}"
 	
 	if [ $VERBOSE_FLAG -eq 1 ]; then
 		echo " done."
@@ -152,6 +147,8 @@ msim_run_sim(){
 	
 	#cleanup all the pipes
 	rm -f .msim_*
+	mv $PAR_FILE".proc_00" $PAR_FILE
+	rm -f $PAR_FILE.proc_??
 }
 
 #=====================================================================================
@@ -186,23 +183,23 @@ msim_job_control(){
 			esac
 			seconds=$(($seconds+1))
 		fi
-		
+
 		nb_active_jobs=$( pgrep -f -P $$ -c "$1" )
 		
 		#because, when Geant3 crashes, we get stuck on gdb for ages
 		#here is a check we will also perform. It's cumbersome
 		#because of the way ROOT launches gdb on crash.
-		nb_failed=$( pgrep -c "gdb" )
-		if [ $nb_failed -gt 0 ]; then
-			for a_job in $( pgrep -f -P $$ "$1" -d " " ); do
-				if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
-					kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
-					
-					echo "multisim: warning: root process $a_job crashed and was killed. See log for details." >&2
-					echo "                   You may have to run this particular job again..." >&2
-				fi
-			done
-		fi
+ 		nb_failed=$( pgrep -c "gdb" )
+ 		if [ $nb_failed -gt 0 ]; then
+ 			for a_job in $( pgrep -f -P $$ -c "$1" -d " " ); do
+ 				if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
+ 					kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
+ 					
+ 					echo "multisim: warning: root process $a_job crashed and was killed. See log for details." >&2
+ 					echo "                   You may have to run this particular job again..." >&2
+ 				fi
+ 			done
+ 		fi
 	done
 }
 
@@ -221,7 +218,7 @@ msim_join_root_files(){
 	#and proceed only if the simulation is reasonably small.
 	if [ $( du -c $tmp_files | grep total | sed "s/total//g" ) -le 103809024 ]; then
 	
-		hadd -v 0 -f $stitched_file $tmp_files 2>/dev/null 1>&2
+		hadd -v0 $stitched_file $tmp_files 1>2 2>/dev/null
 		
 		#cleanup (nonoptional here)
 		if [ $(( $( du -c $tmp_files | grep total | sed "s/total//g" ) - 1024 )) -le \
