@@ -322,7 +322,7 @@ ad_job_control(){
 		#because of the way ROOT launches gdb on crash.
 		nb_failed=$( pgrep -c "gdb" )
 		if [ $nb_failed -gt 0 ]; then
-			for a_job in $( pgrep -P $$ "$1" -d " " ); do
+			for a_job in $( pgrep -P $$ -c "$1" -d " " ); do
 				if [ $( pgrep -P $a_job -c "sh" ) -gt 0 ]; then
 					kill -SIGKILL $( pgrep -P $( pgrep -P $( pgrep -P $a_job "sh" ) "gdb-backtrace" ) "gdb" )
 					
@@ -411,7 +411,7 @@ ad_join_root_files(){
 	                                                                                 #size is less than 99GiB
 	                                                                                 #join.
 	
-		hadd -v 0 -f $stitched_file $tmp_files 1>&2 2>/dev/null
+		hadd -v0 $stitched_file $tmp_files 1>&2 2>/dev/null
 		
 		#cleanup (nonoptional here)
 		if [ $(( $( du -c $tmp_files | grep total | sed "s/total//g" ) - 1024 )) -le \
