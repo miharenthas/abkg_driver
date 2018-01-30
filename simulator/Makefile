@@ -16,9 +16,6 @@ ROOT_LIBS += $(GEANT_LIBS)
 
 ROOT_FLAGS = `root-config --cflags`
 ROOT_FLAGS += -L $(SIMPATH)/lib -L $(FAIRROOTPATH)/lib -I $(SIMPATH)/include -I $(SIMPATH)/include/TGeant3 -I $(FAIRROOTPATH)/include
-<<<<<<< HEAD
-CXX_FLAGS = -Wno-varargs -std=c++14 -I $(INCLUDE_D) -pthread -ggdb -Wl,--no-as-needed
-=======
 
 ifneq "$(R3BROOTPATH)" ""
 	ROOT_FLAGS += -I $(R3BROOTPATH)/include -L $(R3BROOTPATH)/lib
@@ -31,7 +28,6 @@ ifeq "$(ISGCC14CAPABLE)" "1"
 else
 	CXX_FLAGS += -std=c++11
 endif
->>>>>>> master
 
 OBJECTS = r3b_ascii_gen r3bsim_driver r3b_ascii_event_structs r3b_ascii_paged_stack r3b_ascii_parsecfg r3bsim_primer
 BINARIES = $(BIN_D)/r3b_ascii_gen.o $(BIN_D)/r3bsim_driver.o $(BIN_D)/r3b_ascii_event_structs.o $(BIN_D)/r3b_ascii_paged_stack.o $(BIN_D)/r3b_ascii_parsecfg.o $(BIN_D)/r3bsim_primer.o

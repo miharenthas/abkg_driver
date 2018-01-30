@@ -99,11 +99,13 @@ float r3bsim_driver( r3bsim_opts &so ){
 		fieldPar->setChanged();
 	}
 
-	FairParRootFileIo *parOut = new FairParRootFileIo( kTRUE );
-	parOut->open( so.ParFile );
-	rtdb->setOutput( parOut );
-	rtdb->saveOutput();
-	if( so.verbose ) rtdb->print();
+	if( strcmp( so.ParFile , "/dev/null" ) ){
+		FairParRootFileIo *parOut = new FairParRootFileIo( kTRUE );
+		parOut->open( so.ParFile );
+		rtdb->setOutput( parOut );
+		rtdb->saveOutput();
+		if( so.verbose ) rtdb->print();
+    } else if( so.verbose ) puts( "No parameter file given, none used." );
 	
 	//-------------------------------------------------
 	//before run, set some gMC stuff
