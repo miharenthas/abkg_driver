@@ -24,8 +24,8 @@ void r3bsim_options_init(){
 	globber_opts.fUserPList = false;
 	globber_opts.fR3BMagnet = true;
 	globber_opts.fMeasCurrent = 2000.;
-	strcpy( globber_opts.OutFile, "r3bsim_bkg.root" );
-	strcpy( globber_opts.ParFile, "r3bpar_bkg.root" );
+	strcpy( globber_opts.OutFile, "bkg.root" );
+	strcpy( globber_opts.ParFile, "/dev/null" );
 	globber_opts.EventFile = NULL;
 	strcpy( globber_opts.usr_cuts, "./ugly/SetCuts.C" );
 	globber_opts.field_scale = -0.5; //apparently, this is the default...
