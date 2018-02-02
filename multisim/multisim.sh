@@ -78,7 +78,7 @@ msim_parse_cmd_line(){
 			shift
 		fi
 		#intercept also the parameter file
-		if [ $1 == "-p" ] || [ $1 == "--parameter-file" ]; then
+		if [ "$1" == "-p" ] || [ "$1" == "--parameter-file" ]; then
 			echo "WARNING: the parameter file is a deeply borken feature in FairRoot."
 			echo "         Are you REALLY sure you want to use it?"
 			read amisure
@@ -238,7 +238,7 @@ msim_join_root_files(){
 	#and proceed only if the simulation is reasonably small.
 	if [ $( du -c $tmp_files | grep total | sed "s/total//g" ) -le 103809024 ]; then
 	
-		hadd -v0 $stitched_file $tmp_files 2>/dev/null 1>&2
+		hadd -f $stitched_file $tmp_files 2>>$logfile 1>&2
 		
 		#cleanup (nonoptional here)
 		if [ $(( $( du -c $tmp_files | grep total | sed "s/total//g" ) - 1024 )) -le \

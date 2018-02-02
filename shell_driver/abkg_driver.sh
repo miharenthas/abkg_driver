@@ -411,7 +411,7 @@ ad_join_root_files(){
 	                                                                                 #size is less than 99GiB
 	                                                                                 #join.
 	
-		hadd -v0 $stitched_file $tmp_files 1>&2 2>/dev/null
+		hadd -f $stitched_file $tmp_files 1>$LOG_FILE 2>&1
 		
 		#cleanup (nonoptional here)
 		if [ $(( $( du -c $tmp_files | grep total | sed "s/total//g" ) - 1024 )) -le \
