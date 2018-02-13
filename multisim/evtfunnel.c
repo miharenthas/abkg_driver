@@ -4,12 +4,15 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <math.h>
 
 #define LINESZ 512
+#define LINES_PER_ALLOC 512
 #define MAX_FILES 54
 
-#define FROM_STDIN;
-#define TO_STDOUT;
+#define FROM_STDIN 0x01
+#define TO_STDOUT 0x02
+#define SLOPPY 0x04
 
 //------------------------------------------------------------------------------------
 //data structures:
@@ -22,10 +25,12 @@ typedef struct event{
 //------------------------------------------------------------------------------------
 //functions:
 int merge( evt *merged, const evt *one );
+int merge_sloppy( evt *merged, const evt *one );
 int load_horizontal( evt **evarr, FILE **streams );
 void put_event( FILE *stream, evt *event );
 
-evt *evt_alloc( int nb_lines );
+int evt_alloc( evt *the_evt, const int nb_lines );
+int gimmie_evt_size( const int nb_lines );
 void evt_resize( evt *given, int sz );
 void evt_free( evt *event );
 int evt_push( evt *event, const char *line );
@@ -42,19 +47,22 @@ int main( int argc, char **argv ){
 	int i;
 	for( i=1; i < argc && i < MAX_FILES-1; ++i ){
 		if( argv[i][0] == '-' ) continue;
-		strncpy( in_fname[in_fcount], argv[i] );
+		strncpy( in_fname[in_fcount], argv[i], LINESZ );
 		++in_fcount;
 	}
 	
 	
 	char iota = 0;
-	while( (iota = getopt( argc, argv, "-cr:" ) ){
+	while( (iota = getopt( argc, argv, "-cs:" ) ) ){
 		switch( iota ){
 			case '-' :
 				flagger |= FROM_STDIN;
 				break;
 			case 'c' :
 				flagger |= TO_STDOUT;
+				break;
+			case 's' :
+				flagger |= SLOPPY;
 				break;
 		}
 	}
@@ -88,12 +96,20 @@ int main( int argc, char **argv ){
 	}
 	
 	evt *evarr[MAX_FILES]; memset( evarr, 0, sizeof(evt*) );
-	int nb_evt = 0;
+	int nb_evt = 0, ck = 0;
 	do{
 		nb_evt = load_horizontal( evarr, in_file );
-		for( i=0; i < nb_evt-1; ++i )
-			merge( evarr[i+1], evarr[i] ); //the merged event is left in the last place
-		put_event( out_file, evarr[nb_evt-1];
+		for( i=0; i < nb_evt-1; ++i ){
+			if( flagger & SLOPPY ) merge_sloppy( evarr[i+1], evarr[i] ); //the merged event is left in the last place
+			else{
+				ck = merge( evarr[i+1], evarr[i] );
+				if( ck < 0 ){
+					puts( "evtfunnel: incompatible events." );
+					exit( 3 );
+				}
+			}
+		}
+		put_event( out_file, evarr[nb_evt-1] );
 	} while( nb_evt );
 	
 	return 0;
@@ -103,8 +119,28 @@ int main( int argc, char **argv ){
 //LOTS of functions!!!
 
 //------------------------------------------------------------------------------------
+//put the event on a stream
+void put_event( FILE *stream, evt *event ){
+	int i;
+	fputs( event->firstline, stream );
+	for( i=0; i < event->nl; ++i ) fputs( event->lines[i], stream );
+}
+
+//------------------------------------------------------------------------------------
 //merge two events
 int merge( evt *merged, const evt *one ){
+	int n_tracks = 0, evt_id = 0, i;
+	float b_mass, b_mass_m, b_beta, b_beta_m;
+	sscanf( one->firstline, "%d\t%d\t%f\t%f", &evt_id, &n_tracks, &b_mass, &b_beta );
+	sscanf( merged->firstline, "%d\t%d\t%f\t%f", &evt_id, &n_tracks, &b_mass_m, &b_beta_m );
+	if( b_mass != b_mass_m || b_beta != b_beta_m ) return -1;
+	for( i=0; i < n_tracks; ++i ) evt_push( merged, one->lines[i] );
+	sprintf( merged->firstline, "%d\t%d\t%f\t%f", evt_id, merged->nl, b_mass, b_beta );
+	return merged->nl;
+}
+
+//merge two events without checking if it makes sense (take tke first relevant line from the one)
+int merge_sloppy( evt *merged, const evt *one ){
 	int n_tracks = 0, evt_id = 0, i;
 	float b_mass, b_beta;
 	sscanf( one->firstline, "%d\t%d\t%f\t%f", &evt_id, &n_tracks, &b_mass, &b_beta );
@@ -117,16 +153,19 @@ int merge( evt *merged, const evt *one ){
 //load horizontally the events (one for each file), until files are available.
 int load_horizontal( evt **evarr, FILE **streams ){
 	int i, t, id, nb_loaded=0;
-	char cbuf[LINESZ];
+	char cbuf[LINESZ], c;
 	for( i=0; i < MAX_FILES; ++i ){
 		if( !streams[i] ) continue; //it's critical that unused files are set to NULL!
-		fgetc( streams[i] );
+		c = fgetc( streams[i] );
 		if( feof( streams[i] ) ){
 			fclose( streams[i] );
 			streams[i] = NULL;
 			continue;
 		}
-		fungetc( streams[i] );
+		ungetc( c, streams[i] );
+		
+		if( evarr[i] ) evt_free( evarr[i] );
+		evt_alloc( evarr[i], 1 );
 		
 		fgets( evarr[i]->firstline, LINESZ, streams[i] );
 		sscanf( evarr[i]->firstline, "%d\t%d", &id, &evarr[i]->nl );
@@ -138,6 +177,45 @@ int load_horizontal( evt **evarr, FILE **streams ){
 	
 	return nb_loaded;
 }
-			
+
+//------------------------------------------------------------------------------------
+//memory fiddlers
+
+int gimmie_evt_size( const int nb_lines ){
+	return ceil( nb_lines/LINES_PER_ALLOC )*LINES_PER_ALLOC;
+}
+
+int evt_alloc( evt *the_evt, const int nb_lines ){
+	int lta = gimmie_evt_size( nb_lines );
+	the_evt->nl = nb_lines;
+	the_evt->lines = (char**)calloc( lta, sizeof( char* ) );
+	int i;
+	for( i=0; i < lta; ++i ) the_evt->lines[i] = (char*)calloc( LINESZ, 1 );
+	return lta;
+}
 	
-	
+void evt_resize( evt *given, const int sz ){
+	int lta = gimmie_evt_size( sz );
+	int al = gimmie_evt_size( given->nl );
+	if( lta != al ){
+		given->lines = (char**)realloc( given->lines, lta*sizeof( char* ) );
+		int i;
+		for( i=al; i < lta; ++i ) given->lines[i] = (char*)calloc( LINESZ, 1 );
+	}
+	given->nl = sz;
+}
+
+void evt_free( evt *event ){
+	int al = gimmie_evt_size( event->nl );
+	int i;
+	for( i=0; i < al; ++i ) free( event->lines[i] );
+	free( event->lines );
+}
+
+int evt_push( evt *event, const char *line ){
+	int al = gimmie_evt_size( event->nl );
+	if( al == event->nl ) evt_resize( event, event->nl+1 );
+	strncpy( event->lines[event->nl], line, LINESZ );
+	event->nl++;
+	return event->nl;
+}

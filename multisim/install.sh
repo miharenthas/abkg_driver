@@ -8,7 +8,11 @@ if [ -z "$1" ]; then
 	else
 		echo "install.sh: evtmux already installed."
 	fi
-
+	if ! [ -h /usr/local/bin/evtfunnel ]; then
+		ln -s $PWD/evtfunnel /usr/local/bin/
+	else
+		echo "install.sh: evtfunnel already installed."
+	fi
 	if ! [ -h /usr/local/bin/multisim ]; then
 		ln -s $PWD/multisim.sh /usr/local/bin/multisim
 	else
@@ -16,6 +20,7 @@ if [ -z "$1" ]; then
 	fi
 elif [ "$1" == "-u" ]; then
 	rm -f /usr/local/bin/evtmux
+	rm -f /usr/local/bin/evtfunnel
 	rm -f /usr/local/bin/multisim
 fi
 
