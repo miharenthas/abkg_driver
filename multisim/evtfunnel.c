@@ -8,7 +8,7 @@
 
 #define LINESZ 512
 #define LINES_PER_ALLOC 512
-#define MAX_FILES 54
+#define MAX_FILES 64
 
 #define FROM_STDIN 0x01
 #define TO_STDOUT 0x02
@@ -29,7 +29,7 @@ int merge_sloppy( evt *merged, const evt *one );
 int load_horizontal( evt **evarr, FILE **streams );
 void put_event( FILE *stream, evt *event );
 
-int evt_alloc( evt *the_evt, const int nb_lines );
+evt *evt_alloc( const int nb_lines );
 int gimmie_evt_size( const int nb_lines );
 void evt_resize( evt *given, int sz );
 void evt_free( evt *event );
@@ -53,7 +53,7 @@ int main( int argc, char **argv ){
 	
 	
 	char iota = 0;
-	while( (iota = getopt( argc, argv, "-cs:" ) ) ){
+	while( (iota = getopt( argc, argv, "-cs:" ) ) != -1 ){
 		switch( iota ){
 			case '-' :
 				flagger |= FROM_STDIN;
@@ -75,6 +75,7 @@ int main( int argc, char **argv ){
 	if( in_fcount > 1 && !( flagger & TO_STDOUT ) ){
 		memmove( out_fname, in_fname[in_fcount-1], 256 );
 		memset( in_fname[in_fcount-1], 0, 256 );
+		--in_fcount;
 	}
 	
 	FILE *in_file[MAX_FILES]; memset( in_file, 0, sizeof(FILE*) );
@@ -85,7 +86,7 @@ int main( int argc, char **argv ){
 			exit( 1 );
 		}
 	}
-	if( flagger & FROM_STDIN ) in_file[(i+1)%64] = stdin;
+	if( flagger & FROM_STDIN ) in_file[(i+1)%MAX_FILES] = stdin;
 	
 	FILE *out_file;
 	if( flagger & TO_STDOUT ) out_file = stdout;
@@ -104,12 +105,12 @@ int main( int argc, char **argv ){
 			else{
 				ck = merge( evarr[i+1], evarr[i] );
 				if( ck < 0 ){
-					puts( "evtfunnel: incompatible events." );
+					fputs( "evtfunnel: incompatible events.\n", stderr );
 					exit( 3 );
 				}
 			}
 		}
-		put_event( out_file, evarr[nb_evt-1] );
+		if( nb_evt ) put_event( out_file, evarr[nb_evt-1] );
 	} while( nb_evt );
 	
 	return 0;
@@ -135,7 +136,7 @@ int merge( evt *merged, const evt *one ){
 	sscanf( merged->firstline, "%d\t%d\t%f\t%f", &evt_id, &n_tracks, &b_mass_m, &b_beta_m );
 	if( b_mass != b_mass_m || b_beta != b_beta_m ) return -1;
 	for( i=0; i < n_tracks; ++i ) evt_push( merged, one->lines[i] );
-	sprintf( merged->firstline, "%d\t%d\t%f\t%f", evt_id, merged->nl, b_mass, b_beta );
+	sprintf( merged->firstline, "%d\t%d\t%f\t%f\n", evt_id, merged->nl, b_mass, b_beta );
 	return merged->nl;
 }
 
@@ -145,7 +146,7 @@ int merge_sloppy( evt *merged, const evt *one ){
 	float b_mass, b_beta;
 	sscanf( one->firstline, "%d\t%d\t%f\t%f", &evt_id, &n_tracks, &b_mass, &b_beta );
 	for( i=0; i < n_tracks; ++i ) evt_push( merged, one->lines[i] );
-	sprintf( merged->firstline, "%d\t%d\t%f\t%f", evt_id, merged->nl, b_mass, b_beta );
+	sprintf( merged->firstline, "%d\t%d\t%f\t%f\n", evt_id, merged->nl, b_mass, b_beta );
 	return merged->nl;
 }
 
@@ -164,14 +165,14 @@ int load_horizontal( evt **evarr, FILE **streams ){
 		}
 		ungetc( c, streams[i] );
 		
-		if( evarr[i] ) evt_free( evarr[i] );
-		evt_alloc( evarr[i], 1 );
+		if( evarr[nb_loaded] ) evt_free( evarr[nb_loaded] );
+		evarr[nb_loaded] = evt_alloc( 1 );
 		
-		fgets( evarr[i]->firstline, LINESZ, streams[i] );
-		sscanf( evarr[i]->firstline, "%d\t%d", &id, &evarr[i]->nl );
-		evt_resize( evarr[i], evarr[i]->nl );
-		for( t=0; t < evarr[i]->nl; ++t )
-			fgets( evarr[i]->lines[t], LINESZ, streams[i] );
+		fgets( evarr[nb_loaded]->firstline, LINESZ, streams[i] );
+		sscanf( evarr[nb_loaded]->firstline, "%d\t%d", &id, &evarr[i]->nl );
+		evt_resize( evarr[nb_loaded], evarr[nb_loaded]->nl );
+		for( t=0; t < evarr[nb_loaded]->nl; ++t )
+			fgets( evarr[nb_loaded]->lines[t], LINESZ, streams[i] );
 		nb_loaded++;
 	}
 	
@@ -182,16 +183,17 @@ int load_horizontal( evt **evarr, FILE **streams ){
 //memory fiddlers
 
 int gimmie_evt_size( const int nb_lines ){
-	return ceil( nb_lines/LINES_PER_ALLOC )*LINES_PER_ALLOC;
+	return ceil( (float)nb_lines/LINES_PER_ALLOC )*LINES_PER_ALLOC;
 }
 
-int evt_alloc( evt *the_evt, const int nb_lines ){
+evt *evt_alloc( const int nb_lines ){
 	int lta = gimmie_evt_size( nb_lines );
+	evt *the_evt = calloc( 1, sizeof( evt ) );
 	the_evt->nl = nb_lines;
 	the_evt->lines = (char**)calloc( lta, sizeof( char* ) );
 	int i;
 	for( i=0; i < lta; ++i ) the_evt->lines[i] = (char*)calloc( LINESZ, 1 );
-	return lta;
+	return the_evt;
 }
 	
 void evt_resize( evt *given, const int sz ){
@@ -210,6 +212,7 @@ void evt_free( evt *event ){
 	int i;
 	for( i=0; i < al; ++i ) free( event->lines[i] );
 	free( event->lines );
+	free( event );
 }
 
 int evt_push( evt *event, const char *line ){

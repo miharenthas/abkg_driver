@@ -5,10 +5,10 @@
 all : evtmux evtfunnel
 
 evtmux :
-	gcc -std=c99 evtmux.c -o evtmux
+	gcc -std=c99 evtmux.c -ggdb -o evtmux
 
 evtfunnel :
-	gcc -std=c99 -lm evtfunnel.c -o evtfunnel
+	gcc -std=c99 -lm evtfunnel.c -ggdb -o evtfunnel
 
 .PHONY : install
 install : evtmux
