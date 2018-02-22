@@ -53,7 +53,7 @@ int main( int argc, char **argv ){
 	
 	
 	char iota = 0;
-	while( (iota = getopt( argc, argv, "-cs:" ) ) != -1 ){
+	while( (iota = getopt( argc, argv, "-cs" ) ) != -1 ){
 		switch( iota ){
 			case '-' :
 				flagger |= FROM_STDIN;
