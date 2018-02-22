@@ -206,6 +206,10 @@ ad_parse_input(){
 				do_simulation=1 #of course...
 				mux_simulation=1
 				;;
+			--max-jobs )
+				shift
+				NB_ONLINE_CPUs=$1
+				;;
 			--save-geometry )
 				shift
 				save_geometry=1
@@ -414,7 +418,7 @@ ad_join_root_files(){
 		hadd -f $stitched_file $tmp_files 1>$LOG_FILE 2>&1
 		
 		#cleanup (nonoptional here)
-		if [ $(( $( du -c $tmp_files | grep total | sed "s/total//g" ) - 1024 )) -le \
+		if [ $(( $( du -c $tmp_files | grep total | sed "s/total//g" ) - $(( 1024*$NB_ONLINE_CPUs )) )) -le \
 		     $( du -c $stitched_file | grep total | sed "s/total//g" ) ]; then
 			rm $tmp_files
 		else
