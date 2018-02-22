@@ -245,7 +245,7 @@ ad_parse_input(){
 	if [ -z $target_thk ]; then target_thk="1.134"; fi
 	if [ -z "$atomic_xs" ]; then atomic_xs="1.07e5"; fi
 	if [ -z $detector_list ]; then
-		detector_list=":TARGET:LeadTarget:TARGETATMOSPHERE:AtmoVacuum"
+		detector_list="TARGETATMOSPHERE:AtmoVacuum" #TARGET:LeadTarget removed
 		detector_list=$detector_list":TARGETWHEEL:TARGETSHIELDING:CRYSTALBALL:"
 	fi
 
@@ -640,7 +640,8 @@ ad_run_simulation_P(){
 	for a_file in $files_to_process; do
 		for xs in $atomic_xs; do
 			output_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_sbkg\.root/g" ) #make the output name
-			par_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg\.root/g" ) #make the parfile name
+# 			par_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg\.root/g" ) #make the parfile name
+			par_name=/dev/null #removed because of ROOT bugs
 		
 			#launch the program on the ascii file, suppressing the output
 			if [ $save_geometry -eq 1 ]; then
@@ -710,7 +711,8 @@ ad_run_simulation_MP(){
 			echo "      for xsection $xs mBarn:"
 			for a_job in $( seq -s " " $NB_ONLINE_CPUs ); do
 				output_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_sbkg_$a_job\.root/g" ) #output name
-				par_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg_$a_job\.root/g" ) #parfile name
+				#par_name=$( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg_$a_job\.root/g" ) #parfile name
+				par_name=/dev/null #removed because of ROOT bugs
 			
 				gbkg $a_file --nb-events $nb_evt_per_job \
 					           --tot-cs $xs \
@@ -745,8 +747,9 @@ ad_run_simulation_MP(){
 			done
 		
 			#join the files together:
-			ad_join_root_files $( ls $OUTPUT_FILE_DIR/*"$xs"mBarn_par_sbkg_[1-9]*.root ) \
-			                   $( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg\.root/g" )
+			#again, parfiles are excluded because they are bugged
+			#ad_join_root_files $( ls $OUTPUT_FILE_DIR/*"$xs"mBarn_par_sbkg_[1-9]*.root ) \
+			#                   $( echo $a_file | sed "s/\.root/_"$xs"mBarn_par_sbkg\.root/g" )
 			
 			ad_join_root_files $( ls $OUTPUT_FILE_DIR/*"$xs"mBarn_sbkg_[1-9]*.root ) \
 			                   $( echo $a_file | sed "s/\.root/_"$xs"mBarn_sbkg\.root/g" )
