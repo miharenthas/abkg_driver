@@ -4,6 +4,10 @@
 .PHONY : all
 all : evtmux evtfunnel
 
+.PHONY : clean
+clean :
+	rm evtmux evtfunnel
+
 evtmux :
 	gcc -std=c99 evtmux.c -ggdb -o evtmux
 

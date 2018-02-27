@@ -7,7 +7,9 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
-#include <omp.h>
+#if !(defined(__APPLE__) && defined(__clang__))
+	#include <omp.h>
+#endif
 
 #include <algorithm>
 
@@ -277,7 +279,11 @@ void *make_events( void *the_msg ){
 	#pragma omp parallel private( beta, pair, dir, mom, mom4, e, rng, failcount )
 	{
 	rng = gsl_rng_alloc( gsl_rng_default );
-	gsl_rng_set( rng, rand() + omp_get_thread_num() );
+	#if !(defined(__APPLE__) && defined(__clang__))
+		gsl_rng_set( rng, rand() + omp_get_thread_num() );
+	#else
+		gsl_rng_set( rng, rand() );
+	#endif
 	dir = gsl_vector_alloc( 3 );
 	mom = gsl_vector_alloc( 3 );
 	mom4 = gsl_vector_alloc( 4 );

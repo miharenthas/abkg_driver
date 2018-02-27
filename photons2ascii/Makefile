@@ -8,12 +8,17 @@ lib_d = $(progs_home)/lib
 
 is_gcc_14_capable = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 5)
 
-cxx_flags = -lgsl -lgslcblas -lm -lgmp -frounding-math -ggdb -pthread -fopenmp -I $(include_d) -Wno-narrowing
+cxx_flags = -lgsl -lgslcblas -lm -lgmp -ggdb -pthread -I $(include_d) -Wno-narrowing
 
 ifeq "$(is_gcc_14_capable)" "1"
 	cxx_flags += -std=c++14
 else
 	cxx_flags += -std=c++11
+endif
+
+compiler = $(shell expr `$(CXX) --version 2>/dev/null | grep -o LLVM`)
+ifneq "$(compiler)" "LLVM"
+        cxx_flags += -fopenmp -frounding-math
 endif
 
 objects = p2a_angtools p2a_gen_angdist p2a_gen_momenta p2a_dboost p2a_make_evt

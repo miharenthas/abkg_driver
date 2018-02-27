@@ -68,7 +68,7 @@ int main( int argc, char **argv ){
 	}
 	
 	if( !in_fcount && ( flagger & TO_STDOUT ) ){
-		fprintf( stderr, "%s: nothing to do here...\n" );
+		fprintf( stderr, "%s: nothing to do here...\n", argv[0] );
 		exit( 0 );
 	}
 	
