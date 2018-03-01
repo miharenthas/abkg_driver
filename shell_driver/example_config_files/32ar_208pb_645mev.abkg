@@ -1,0 +1,20 @@
+2f                    ! what to include in spectrum (in HEX)
+1000.,100.,50.        ! energy, sigma, angle_cut
+32.,18.,645.          ! A_p,Z_p, t_beam
+208.,82.,11.35        ! A_t,Z_t, density
+5 0.968               ! num_xrays, flour_targ
+72.8  75.0  84.5  84.9  87.3 ! xray energy
+59.3 100.0  11.6  22.2  10.2 ! xray intensity  ! next lines are the compton profile
+1.13e+1  1.12e+1  1.12e+1  1.10e+1  1.08e+1  1.03e+1  9.70e+0  9.07e+0
+8.52e+0  8.07e+0  7.72e+0  7.21e+0  6.80e+0  6.38e+0  5.93e+0  5.47e+0
+5.03e+0  4.27e+0  3.50e+0  2.84e+0  2.40e+0  1.98e+0  1.61e+0  1.31e+0
+9.10e-1  4.50e-1  2.50e-1  9.80e-2  4.60e-2  1.50e-2  3.20e-3
+30.0 3030.0 301 ! e_start,e_end,n_e
+0.0 180.0 361   ! th_start, th_end, n_th  ! next line is output file
+ar32_abkg_645.hst   
+0.01            ! accuracy
+
+
+
+
+
