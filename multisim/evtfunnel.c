@@ -32,6 +32,7 @@ void put_event( FILE *stream, evt *event );
 evt *evt_alloc( const int nb_lines );
 int gimmie_evt_size( const int nb_lines );
 void evt_resize( evt *given, int sz );
+void evt_clear( evt *given );
 void evt_free( evt *event );
 int evt_push( evt *event, const char *line );
 
@@ -165,8 +166,8 @@ int load_horizontal( evt **evarr, FILE **streams ){
 		}
 		ungetc( c, streams[i] );
 		
-		if( evarr[nb_loaded] ) evt_free( evarr[nb_loaded] );
-		evarr[nb_loaded] = evt_alloc( 1 );
+		if( evarr[nb_loaded] ) evt_clear( evarr[nb_loaded] );
+		else evarr[nb_loaded] = evt_alloc( 1 );
 		
 		fgets( evarr[nb_loaded]->firstline, LINESZ, streams[i] );
 		sscanf( evarr[nb_loaded]->firstline, "%d\t%d", &id, &evarr[i]->nl );
@@ -205,6 +206,13 @@ void evt_resize( evt *given, const int sz ){
 		for( i=al; i < lta; ++i ) given->lines[i] = (char*)calloc( LINESZ, 1 );
 	}
 	given->nl = sz;
+}
+
+void evt_clear( evt *event ){
+	int ltc = gimmie_evt_size( event->nl );
+	int i;
+	memset( event->firstline, 0, LINESZ );
+	for( i=0; i < ltc; ++i ) memset( event->lines[i], 0, LINESZ );
 }
 
 void evt_free( evt *event ){
