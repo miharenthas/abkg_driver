@@ -108,7 +108,7 @@ typedef struct r3bsim_fluka_settings : public r3bsim_MC_settings {
 //------------------------------------------------------------------------------------
 //cutZ
 struct r3bsim_cuts {
-	float gamma = 1e-4;
+	float gamma = 0;
 	float electron = 1e-3;
 	float neutral_had = 1e-4;
 	float charged_had = 1e-3;
