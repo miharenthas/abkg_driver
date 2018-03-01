@@ -87,7 +87,8 @@ ad_check_env(){
 			exit 1
 		fi
 	fi
-	if [ -z "$(echo $PATH | grep \"sbkg\")" ]; then
+	if [ -z "$(echo $PATH | grep \"sbkg\")" ] && [ $(( $do_simulation + $mux_simulation )) -ne 0 ]; then
+		echo PIP
 		if [ -x $ABKG_HOME_DIR/simulator/sbkg ]; then
 			export PATH=$PATH:$ABKG_HOME_DIR/simulator/
 		else
@@ -770,9 +771,6 @@ ad_run_simulation_MP(){
 #-------------------------------------------------------------------------------------
 #main program (the driver itself)
 
-#check the environment
-ad_check_env
-
 echo "***Welcome in the ABKG shell driver***"
 
 #rebuild the positional parametes array and
@@ -783,6 +781,9 @@ while [ "$1" != "" ]; do
 	shift
 done
 ad_parse_input $PARAMS
+
+#check the environment
+ad_check_env
 
 echo "Settings:"
 echo -e "\tOutput file name tail: $filename"
