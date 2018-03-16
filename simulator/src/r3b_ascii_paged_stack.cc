@@ -164,8 +164,6 @@ char r3b_ascii_paged_stack::swap_buffers(){
 		a_file = a_page_alloc( _pages.top(), _back_buf );
 		page_in( a_file );
 
-		_pages.pop();
-		
 		//and swap the buffers
 		std::swap( _front_buf, _back_buf );
 		
