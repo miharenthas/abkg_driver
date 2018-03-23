@@ -52,11 +52,11 @@ int main( int argc, char **argv ){
 		++in_fcount;
 	}
 	
-	
+
 	char iota = 0;
-	while( (iota = getopt( argc, argv, "-cs" ) ) != -1 ){
+	while( (iota = getopt( argc, argv, "acs" ) ) != -1 ){
 		switch( iota ){
-			case '-' :
+			case 'a' :
 				flagger |= FROM_STDIN;
 				break;
 			case 'c' :
@@ -67,18 +67,18 @@ int main( int argc, char **argv ){
 				break;
 		}
 	}
-	
+
 	if( !in_fcount && ( flagger & TO_STDOUT ) ){
 		fprintf( stderr, "%s: nothing to do here...\n", argv[0] );
 		exit( 0 );
 	}
-	
+
 	if( in_fcount > 1 && !( flagger & TO_STDOUT ) ){
 		memmove( out_fname, in_fname[in_fcount-1], 256 );
 		memset( in_fname[in_fcount-1], 0, 256 );
 		--in_fcount;
 	}
-	
+
 	FILE *in_file[MAX_FILES]; memset( in_file, 0, sizeof(FILE*) );
 	for( i=0; i < in_fcount; ++i ){
 		in_file[i] = fopen( in_fname[i], "r" );
@@ -87,8 +87,8 @@ int main( int argc, char **argv ){
 			exit( 1 );
 		}
 	}
-	if( flagger & FROM_STDIN ) in_file[(i+1)%MAX_FILES] = stdin;
-	
+	if( flagger & FROM_STDIN ){ in_file[(i+1)%MAX_FILES] = stdin; ++in_fcount; }
+
 	FILE *out_file;
 	if( flagger & TO_STDOUT ) out_file = stdout;
 	else out_file = fopen( out_fname, "w" );
@@ -96,7 +96,7 @@ int main( int argc, char **argv ){
 		fprintf( stderr, "%s: error: file \"%s\" not opened.\n", argv[0], out_fname );
 		exit( 2 );
 	}
-	
+
 	evt *evarr[MAX_FILES]; memset( evarr, 0, sizeof(evt*) );
 	int nb_evt = 0, ck = 0;
 	do{
@@ -170,7 +170,7 @@ int load_horizontal( evt **evarr, FILE **streams ){
 		else evarr[nb_loaded] = evt_alloc( 1 );
 		
 		fgets( evarr[nb_loaded]->firstline, LINESZ, streams[i] );
-		sscanf( evarr[nb_loaded]->firstline, "%d\t%d", &id, &evarr[i]->nl );
+		sscanf( evarr[nb_loaded]->firstline, "%d\t%d", &id, &evarr[nb_loaded]->nl );
 		evt_resize( evarr[nb_loaded], evarr[nb_loaded]->nl );
 		for( t=0; t < evarr[nb_loaded]->nl; ++t )
 			fgets( evarr[nb_loaded]->lines[t], LINESZ, streams[i] );
