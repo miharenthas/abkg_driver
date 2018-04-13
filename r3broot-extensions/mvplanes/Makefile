@@ -11,6 +11,6 @@ R3BRattlePlane.o :
 R3BRPHit.o :
 	g++ R3BRPHit.cxx $(ROOT_FLAGS) -fPIC -c -o $(r3bext_bin)/mvplanes/R3BRPHit.o
 R3BStopperPlane.o :
-	g++ R3BStopperPlane.cxx $(ROOT_FLAGS) -fPIC -c -o $(r3bext_bin)/mvplanes/R3BRattlePlane.o
+	g++ R3BStopperPlane.cxx $(ROOT_FLAGS) -fPIC -c -o $(r3bext_bin)/mvplanes/R3BStopperPlane.o
 libR3BMVPlanes.so :
 	g++ $(r3bext_bin)/mvplanes/*.o -shared -o $(r3bext_lib)/libR3BMVPlanes.so

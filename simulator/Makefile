@@ -9,7 +9,7 @@ ISGCC14CAPABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 5)
 ROOT_LIBS = `root-config --libs`
 GEANT_LIBS = -lgeant321 -lPythia6 -lVMC -lEG
 FAIR_LIBS =  -lFairTools -lParBase -lBase -lGeom
-R3B_LIBS = -lELILuMon -lField -lR3Bbase -lR3BData -lR3BCalifa -lR3BDch -lR3BdTof -lR3BEvtVis -lR3BGen -lR3BGfi -lR3BLand -lR3BLos -lR3BMfi -lR3BmTof -lR3BNeulandClustering -lR3BNeulandDigitizing -lR3BNeulandReconstruction -lR3BNeulandShared -lR3BNeulandSimulation -lR3BNeulandUnpack -lR3BPassive -lR3BPsp -lR3BStartrack -lR3BTCal -lR3BTof -lR3BTra -lR3BXBall -ltimestitcher -lR3BMVPlanes -lbodgelogger
+R3B_LIBS = -lELILuMon -lField -lR3Bbase -lR3BData -lR3BCalifa -lR3BDch -lR3BdTof -lR3BEvtVis -lR3BGen -lR3BGfi -lR3BLand -lR3BLos -lR3BMfi -lR3BmTof -lR3BNeulandClustering -lR3BNeulandDigitizing -lR3BNeulandReconstruction -lR3BNeulandShared -lR3BNeulandSimulation -lR3BNeulandUnpack -lR3BPassive -lR3BPsp -lR3BStartrack -lR3BTCal -lR3BTof -lR3BTra -lR3BXBall -ltimestitcher -lR3BPassive_custom -lR3BMVPlanes -lbodgelogger
 #-lR3BFi4 temporarily removed because of undefined constructor.
 ROOT_LIBS += $(FAIR_LIBS)
 ROOT_LIBS += $(R3B_LIBS)

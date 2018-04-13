@@ -8,5 +8,7 @@
 #pragma link C++ class R3BTargetWheel+;
 #pragma link C++ class R3BTargetAtmosphere+;
 #pragma link C++ class R3BTargetShielding+;
+#pragma link C++ class R3BMagnet+;
+#pragma link C++ class R3BTargetAssemblyMedia+;
 
 #endif
