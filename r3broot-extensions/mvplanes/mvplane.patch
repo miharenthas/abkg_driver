@@ -1,0 +1,13 @@
+diff --git a/r3bdata/R3BDetectorList.h b/r3bdata/R3BDetectorList.h
+index 899f0ba..74e020d 100644
+--- a/r3bdata/R3BDetectorList.h
++++ b/r3bdata/R3BDetectorList.h
+@@ -10,6 +10,8 @@
+ 
+ enum DetectorId
+ {
++    kRATTLEPLANE,
++    kSTOPPERPLANE,
+     kREF,
+     kDCH,
+     kCAL,
