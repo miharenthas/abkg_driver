@@ -31,12 +31,13 @@ endif
 #if not, create them
 
 .PHONY: all
-all : dirz mvplanes passive
+all : dirz mvplanes passive bodgelogger
 
 .PHONY: clean
 clean :
 	rm -f $(r3bext_bin)/passive/*
 	rm -f $(r3bext_bin)/mvplanes/*
+	rm -f $(r3bext_bin)/bodgelogger/*
 	rm -f $(r3bext_lib)/*.so
 
 #check the filesystem
@@ -45,7 +46,8 @@ dirz :
 	if ! [ -d $(r3bext_bin) ]; then \
 		mkdir -p $(r3bext_bin) \
 		mkdir -p $(r3bext_bin)/passive \
-		mkdir -p $(r3bext_bin)/mvplanes; fi
+		mkdir -p $(r3bext_bin)/mvplanes \
+		mkdir -p $(r3bext_bin)/bodgelogger; fi
 	if ! [ -d $(r3bext_lib) ]; then mkdir $(r3bext_lib); fi
 
 .PHONY: install
@@ -57,3 +59,6 @@ mvplanes : dirz
 
 passive : dirz
 	make -eC passive/
+
+bodgelogger : dirz
+	make -eC bodgelogger/
