@@ -8,4 +8,5 @@ fi
 
 ln -sf -t $R3BROOTPATH/lib/ $PWD/lib/*.so
 ln -sf -t $R3BROOTPATH/lib/ $( find $PWD -name '*.pcm' )
+ln -sf -t $R3BROOTPATH/lib/ $( find $PWD -name '*.rootmap' )
 cp $( find . -name 'R3B*.h' ) $R3BROOTPATH/include/

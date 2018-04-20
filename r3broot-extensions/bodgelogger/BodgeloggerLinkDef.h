@@ -4,7 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class r3b_ascii_bodgelogger+;
 #pragma link C++ class r3b_ascii_blog+;
+#pragma link C++ class r3b_ascii_bodgelogger+;
 
 #endif

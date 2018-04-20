@@ -6,7 +6,7 @@ all_boogies = r3b_ascii_blog.o r3b_ascii_bodgelogger.o bodgelogger_dict.o libbod
 boogies: $(all_boogies)
 
 bodgelogger_dict.o :
-	rootcling $(r3bext_bin)/bodgelogger/bodgelogger_dict.C -c r3b_*.h BodgeloggerLinkDef.h
+	rootcling $(r3bext_bin)/bodgelogger/bodgelogger_dict.C -rmf $(r3bext_bin)/bodgelogger/libbodgelogger.rootmap -rml libbodgelogger.so -c r3b_*.h BodgeloggerLinkDef.h
 	g++ $(r3bext_bin)/bodgelogger/bodgelogger_dict.C $(ROOT_FLAGS) -fPIC -c -o $(r3bext_bin)/bodgelogger/$@
 r3b_ascii_blog.o :
 	g++ r3b_ascii_blog.cc $(ROOT_FLAGS) -fPIC -c -o $(r3bext_bin)/bodgelogger/$@
